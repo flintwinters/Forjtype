@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include "Vect.c"
 
-typedef struct Atom Atom;
 typedef long long word;
-typedef Atom* (*Go)(Atom*, Atom*);
+typedef struct Atom Atom;
+typedef Atom* (*Ex)(Atom*, Atom*);
 
 struct Atom {
     Atom* n, *t;
@@ -60,13 +60,13 @@ Atom* set(Atom* a, Atom* e) {
 }
 int main() {
     Atom* T = new();
-    Atom* Tget = ref(append(T, new()));
-    Atom* goer = ref(tset(Tget->t, T));
+    Atom* Tset = ref(append(T, new()));
+    Atom* exec = ref(tset(Tset->t, T));
     Atom* valu = ref(tset(new(), T));
     ptr = ref(tset(new(), valu));
-    append(valu, goer)->w = (word) val;
+    append(valu, exec)->w = (word) val;
     Atom* symbol = ref(tset(new(), T));
-    Atom* Tset = ref(append(symbol, Tget->t));
+    Atom* Tget = ref(append(symbol, Tset->t));
     Tset->w = (word) set;
     Tget->w = (word) get;
 
@@ -74,7 +74,7 @@ int main() {
     del(symbol);
     del(ptr);
     del(valu);
-    del(goer);
+    del(exec);
     del(Tget);
     del(T);
 }
