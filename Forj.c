@@ -47,17 +47,10 @@ Atom* ptr;
 Atom* val(Atom* a, Atom* e) {
     e = prepend(e, a->t);
     e->w = a->w;
-    return ref(e);
-}
-Atom* get(Atom* a, Atom* e) {
-    e = prepend(e, ptr);
-    e->w = (word) a->t;
-    return ref(e);
-}
-Atom* set(Atom* a, Atom* e) {
-    tset(a, e->t);
     return e;
 }
+Atom* get(Atom* a, Atom* e) {tset(a, e); return e;}
+Atom* set(Atom* a, Atom* e) {return tset(e, a);}
 int main() {
     Atom* T = new();
     Atom* Tset = ref(append(T, new()));
