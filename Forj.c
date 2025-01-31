@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include "Vect.c"
+
 typedef struct Atom Atom;
 typedef long long word;
 typedef Atom* (*Go)(Atom*, Atom*);
