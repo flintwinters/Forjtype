@@ -31,7 +31,7 @@ Atom* is(Atom* a, Atom* t) {
 }
 Atom* as(Atom* a, Atom* t) {
     if (!a) {return 0;}
-    Atom* n = a->t->n;
+    Atom* n = a->n;
     while (!is(n, t)) {a = n->n;}
     if (n) {return n;}
     return as(a->t, t);
