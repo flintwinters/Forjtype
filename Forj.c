@@ -36,6 +36,7 @@ Atom* as(Atom* a, Atom* t) {
     if (n) {return n;}
     return as(a->t, t);
 }
+
 Atom* last(Atom* a) {
     if (a->n) {return last(a->n);}
     return a;
@@ -44,17 +45,26 @@ Atom* append(Atom* a, Atom* t) {return tset(nset(last(a), new())->n, t);}
 Atom* prepend(Atom* n, Atom* t) {return tset(nset(new(), n), t);}
 
 Atom* ptr;
+Atom* exec;
+Atom* get(Atom* a, Atom* e) {tset(a, e); return e;}
+Atom* set(Atom* a, Atom* e) {return tset(e, a);}
 Atom* val(Atom* a, Atom* e) {
     e = prepend(e, a->t);
     e->w = a->w;
     return e;
 }
-Atom* get(Atom* a, Atom* e) {tset(a, e); return e;}
-Atom* set(Atom* a, Atom* e) {return tset(e, a);}
+Atom* bang(Atom* a, Atom* e) {
+    if (a->w) {
+        e = prepend(e, a->t);
+        e->w = a->w-1;
+        return e;
+    }
+    return ((Ex) (as(e, exec)->w))(e, e);
+}
 int main() {
     Atom* T = new();
     Atom* Tset = ref(append(T, new()));
-    Atom* exec = ref(tset(Tset->t, T));
+    exec = ref(tset(Tset->t, T));
     Atom* valu = ref(tset(new(), T));
     ptr = ref(tset(new(), valu));
     append(valu, exec)->w = (word) val;
