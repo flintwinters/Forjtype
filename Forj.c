@@ -1,9 +1,13 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "Vect.c"
 
 typedef long long word;
 typedef struct Atom Atom;
-typedef Atom* (*Ex)(Atom*, Atom*);
+typedef Atom* (*Func)(Atom*, Atom*);
+
+#define Exec ((Atom*) 1)
+#define Bang (1)
 
 struct Atom {
     Atom* n, *t;
@@ -15,69 +19,87 @@ Atom* new() {
     return a;
 }
 Atom* del(Atom* a) {
-    if (!a) {return 0;}
+    if (!a || a == Exec) {return a;}
     if (--a->r) {return a;}
     del(a->n); del(a->t);
     free(a);
     return 0;
 }
-Atom* ref(Atom* a) {if (a) {a->r++;} return a;}
-Atom* nset(Atom* a, Atom* n) {del(a->n); a->n = ref(n); return a;}
-Atom* tset(Atom* a, Atom* t) {del(a->t); a->t = ref(t); return a;}
-Atom* is(Atom* a, Atom* t) {
-    if (!a) {return 0;}
-    if (a->t == t) {return a;}
-    return is(a->t, t);
-}
-Atom* as(Atom* a, Atom* t) {
-    if (!a) {return 0;}
-    Atom* n = a->n;
-    while (!is(n, t)) {a = n->n;}
-    if (n) {return n;}
-    return as(a->t, t);
-}
+Atom* ref(Atom* a) {if (a && a != Exec) {a->r++;} return a;}
+Atom* nset(Atom* a, Atom* n) {ref(n); del(a->n); a->n = n; return a;}
+Atom* tset(Atom* a, Atom* t) {ref(t); del(a->t); a->t = t; return a;}
+Atom* pull(Atom* p) {return tset(p, p->t->n);}
+Atom* push(Atom* p, Atom* t) {return tset(p, tset(nset(new(), p->t), t));}
 
-Atom* last(Atom* a) {
-    if (a->n) {return last(a->n);}
-    return a;
-}
-Atom* append(Atom* a, Atom* t) {return tset(nset(last(a), new())->n, t);}
-Atom* prepend(Atom* n, Atom* t) {return tset(nset(new(), n), t);}
-
-Atom* ptr;
-Atom* exec;
-Atom* get(Atom* a, Atom* e) {tset(a, e); return e;}
-Atom* set(Atom* a, Atom* e) {return tset(e, a);}
-Atom* val(Atom* a, Atom* e) {
-    e = prepend(e, a->t);
-    e->w = a->w;
-    return e;
-}
-Atom* bang(Atom* a, Atom* e) {
-    if (a->w) {
-        e = prepend(e, a->t);
-        e->w = a->w-1;
-        return e;
+void print(Atom* a) {
+    if (!a) {printf("None\n"); return;}
+    printf("%llx:%llx ~~> %p\n", a->w, a->r, a->t);
+    if (a->n) {
+        printf("\t\t|--> ");
+        print(a->n);
     }
-    return ((Ex) (as(e, exec)->w))(e, e);
+}
+
+Atom* T;
+Atom* bang(Atom* a, Atom* p);
+Atom* dup(Atom* a, Atom* p) {
+    p = push(p, a->t);
+    p->t->w = a->w;
+    return p;
+}
+Atom* exec(Atom* a, Atom* p) {
+    if (a->t == 0) {return dup(a, p);}
+    else if (a->t == Exec) {
+        return ((Func) a->w)(p->t, p);
+    }
+    Atom* e = tset(nset(new(), 0), a->t);
+    while (e->t->n && e->t->n->n) {e = tset(nset(new(), e->n), e->t->n);}
+    Atom* edel = ref(e);
+    while (e) {
+        if (e->t->t == Exec && e->t->w == Bang) {p = bang(e->t, p);}
+        else if (!e->t->t || e->t->t == Exec) {p = dup(e->t, p);}
+        else {p = push(pull(p), e->t->t);}
+        e = e->n;
+    }
+    del(edel);
+    return p;
+}
+Atom* bang(Atom* a, Atom* p) {
+    p = pull(p);
+    return exec(p->t, p);
+}
+
+Atom* printer(Atom* a, Atom* p) {
+    printf("OKOKOK\n");
+    return pull(p);
+}
+Atom* token(char* c, Atom* a, Atom* p) {
+    int i = 0;
+    for (; c[i] == '!'; i++);
+    if (i == 1) {return exec(a, p);}
+    if (i > 1) {
+        Atom* t = tset(new(), Exec);
+        t->w = Bang;
+        while (--i) {t = tset(new(), t);}
+        return tset(p, nset(t, p->t));
+    }
+    if (c[0] == ':') {return push(p, T);}
+
+    p = push(p, Exec);
+    p->t->w = (word) printer;
+    return p;
 }
 int main() {
-    Atom* T = new();
-    Atom* Tset = ref(append(T, new()));
-    exec = ref(tset(Tset->t, T));
-    Atom* valu = ref(tset(new(), T));
-    ptr = ref(tset(new(), valu));
-    append(valu, exec)->w = (word) val;
-    Atom* symbol = ref(tset(new(), T));
-    Atom* Tget = ref(append(symbol, Tset->t));
-    Tset->w = (word) set;
-    Tget->w = (word) get;
-
-    del(Tset);
-    del(symbol);
-    del(ptr);
-    del(valu);
-    del(exec);
-    del(Tget);
+    T = ref(new());
+    Atom* p;
+    p = ref(new());
+    p = token("a", 0, p);
+    p = token("a", 0, p);
+    p = token("!!!", 0, p);
+    p = token("!", p->t, p);
+    p = token("!", p->t, p);
+    print(p);
+    print(p->t);
+    del(p);
     del(T);
 }
