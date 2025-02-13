@@ -1,6 +1,11 @@
-#include <stdio.h>
+// #include <stdio.h>
+// #include "Vect.c"
+#ifdef __linux__
 #include <stdlib.h>
-#include "Vect.c"
+#include "utils.c"
+#else
+#include "../rv64/alloc.c"
+#endif
 
 typedef long long word;
 typedef struct Atom Atom;
@@ -22,7 +27,11 @@ Atom* del(Atom* a) {
     if (!a || a == Exec) {return a;}
     if (--a->r) {return a;}
     del(a->n); del(a->t);
+    #ifdef __linux__
     free(a);
+    #else
+    reclaim(a, sizeof(struct Atom));
+    #endif
     return 0;
 }
 Atom* ref(Atom* a) {if (a && a != Exec) {a->r++;} return a;}
@@ -32,10 +41,11 @@ Atom* pull(Atom* p) {return tset(p, p->t->n);}
 Atom* push(Atom* p, Atom* t) {return tset(p, tset(nset(new(), p->t), t));}
 
 void print(Atom* a) {
-    if (!a) {printf("None\n"); return;}
-    printf("%llx:%llx ~~> %p\n", a->w, a->r, a->t);
+    if (!a) {puts("None\n"); return;}
+    printint(a->w, 8); putchar(':'); printint(a->r, 8);
+    puts(" ~~> "); printint((word) a->t, 8); putchar('\n');
     if (a->n) {
-        printf("\t\t|--> ");
+        puts("\t\t|--> ");
         print(a->n);
     }
 }
@@ -68,15 +78,32 @@ Atom* bang(Atom* a, Atom* p) {
     p = pull(p);
     return exec(p->t, p);
 }
+Atom* open(Atom* a, Atom* p) {
+    p = pull(p);
+    return ref(tset(nset(new(), p), 0));
+}
+Atom* close(Atom* a, Atom* p) {
+    p = pull(p);
+    Atom* n = push(ref(p->n), p->t);
+    del(p);
+    return n;
+}
 
+char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} return c;}
+char isseparator(char c) {return c == 0 || contains(c, "! \n\t");}
 Atom* printer(Atom* a, Atom* p) {
-    printf("OKOKOK\n");
+    puts("OKOKOK\n");
     return pull(p);
 }
-Atom* token(char* c, Atom* a, Atom* p) {
+Atom* pushfunc(Atom* p, Func f) {
+    p = push(p, Exec);
+    p->t->w = (word) f;
+    return p;
+}
+Atom* token(char* c, Atom* p) {
     int i = 0;
     for (; c[i] == '!'; i++);
-    if (i == 1) {return exec(a, p);}
+    if (i == 1) {return exec(p->t, p);}
     if (i > 1) {
         Atom* t = tset(new(), Exec);
         t->w = Bang;
@@ -84,22 +111,28 @@ Atom* token(char* c, Atom* a, Atom* p) {
         return tset(p, nset(t, p->t));
     }
     if (c[0] == ':') {return push(p, T);}
-
-    p = push(p, Exec);
-    p->t->w = (word) printer;
-    return p;
+    if (c[0] == '[') {return pushfunc(p, open);}
+    if (c[0] == ']') {return pushfunc(p, close);}
+    return pushfunc(p, printer);
 }
-int main() {
+void mainc() {
     T = ref(new());
     Atom* p;
-    p = ref(new());
-    p = token("a", 0, p);
-    p = token("a", 0, p);
-    p = token("!!!", 0, p);
-    p = token("!", p->t, p);
-    p = token("!", p->t, p);
+    p = new();
+    p = token("a", p);
+    p = token("a", p);
+    p = token("!!!", p);
+    p = token("!", p);
+    p = token("!", p);
+    p = token("[", p);
+    p = token("!", p);
+    p = token("a", p);
+    p = token("]", p);
+    p = token("!", p);
     print(p);
     print(p->t);
+    print(p->t->t);
     del(p);
     del(T);
 }
+int main() {mainc();}
