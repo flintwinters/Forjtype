@@ -1,11 +1,4 @@
-// #include <stdio.h>
-// #include "Vect.c"
-#ifdef __linux__
-#include <stdlib.h>
-#include "utils.c"
-#else
-#include "../rv64/alloc.c"
-#endif
+#include "Vect.c"
 
 typedef long long word;
 typedef struct Atom Atom;
@@ -57,22 +50,18 @@ Atom* dup(Atom* a, Atom* p) {
     p->t->w = a->w;
     return p;
 }
+Atom* arry(Atom* a, Atom* p) {
+    p = (ref(a)->n) ? arry(a->n, p) : p;
+    if (a->t == Exec && a->w == Bang) {p = bang(a, p);}
+    else if (!a->t || a->t == Exec) {p = dup(a, p);}
+    else {p = push(pull(p), a->t);}
+    del(a);
+    return p;
+}
 Atom* exec(Atom* a, Atom* p) {
     if (a->t == 0) {return dup(a, p);}
-    else if (a->t == Exec) {
-        return ((Func) a->w)(p->t, p);
-    }
-    Atom* e = tset(nset(new(), 0), a->t);
-    while (e->t->n && e->t->n->n) {e = tset(nset(new(), e->n), e->t->n);}
-    Atom* edel = ref(e);
-    while (e) {
-        if (e->t->t == Exec && e->t->w == Bang) {p = bang(e->t, p);}
-        else if (!e->t->t || e->t->t == Exec) {p = dup(e->t, p);}
-        else {p = push(pull(p), e->t->t);}
-        e = e->n;
-    }
-    del(edel);
-    return p;
+    else if (a->t == Exec) {return ((Func) a->w)(p->t, p);}
+    return arry(a->t, p);
 }
 Atom* bang(Atom* a, Atom* p) {
     p = pull(p);
