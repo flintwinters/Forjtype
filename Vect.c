@@ -1,3 +1,12 @@
+#ifdef __linux__
+#include <stdlib.h>
+#include <stdio.h>
+#include "utils.c"
+extern void reclaim(void* b_, word a) {free(b_);}
+#else
+#include "../rv64/alloc.c"
+#endif
+
 typedef char byte;
 typedef long long word;
 typedef struct Vect Vect;
