@@ -13,7 +13,7 @@ union data {
     Vect* v;
     Atom* a;
 };
-enum form {word, func, vect, atom};
+enum form {word, func, vect, atom, exec};
 struct Atom {
     Atom* n, *t; // next.  type.
     data w;
@@ -30,7 +30,6 @@ Atom* del(Atom* a) {
     if (!a) {return a;}
     if (--a->r) {return a;}
     if (a->f == vect) {freevect(a->w.v);}
-    // if (a->f == atom) {del(a->w.a);}
     del(a->n); del(a->t);
     reclaim(a, sizeof(struct Atom));
     return 0;
@@ -61,14 +60,15 @@ Atom* push(Atom* p, Atom* a) {
 }
 Atom* pushnew(Atom* p, Atom* t) {return push(p, tset(new(), t));}
 
-Atom* exec(Atom* a, Atom* p);
+Atom* dot(Atom* a, Atom* p);
 void print(Atom* a, int depth) {
     if (!a) {puts("None\n"); return;}
     if (a->f == word) {BLACK;}
     else if (a->f == func) {GREEN;}
+    else if (a->f == exec) {DARKRED;}
     else if (a->f == vect) {RED;}
     else if (a->f == atom) {YELLOW;}
-    if (a->w.f == exec) {puts(" exec ");}
+    if (a->w.f == dot) {puts("dot");}
     else {printint(a->w.w, 4);}
     if (a->r != 1) {RED; printint(a->r, 4);}
     RESET; puts("\n");
@@ -97,28 +97,23 @@ Atom* dup(Atom* a, Atom* p) {
 }
 Atom* array(Atom* a, Atom* p) {
     p = (!ref(a)->e) ? array(a->n, p) : p;
-    if (a->f == func && a->w.f == exec) {
-        pull(p);
-        exec(p->t, p);
+    if (a->f == exec) {
+        dot(p->t, p);
     }
-    else if (a->t) {pushnew(pull(p), a->t);}
     else {dup(a, p);}
     del(a);
     return p;
 }
-Atom* exec(Atom* a, Atom* p) {
-    if (a->t) {
-        return array(a->t, p);
+Atom* dot(Atom* a, Atom* p) {
+    pull(p);
+    if (p->t->f == func) {
+        return p->t->w.f(p->t, p);
     }
-    if (a->f == word) {return dup(a, p);}
-    else if (a->f == func) {
-        if (a->w.f == exec) {
-            pull(p);
-            return exec(p->t, p);
-        }
-        return a->w.f(a, p);
-    }
-    return array(a->t, p);
+    a = ref(p->t);
+    pull(p);
+    p = array(a->t, p);
+    del(a);
+    return p;
 }
 Atom* open(Atom* a, Atom* p) {
     pull(p);
@@ -136,6 +131,7 @@ Atom* top(Atom* a, Atom* p) {
     pull(p);
     return push(p, p->t);
 }
+Atom* pulls(Atom* a, Atom* p) {return pull(p);}
 
 char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} return c;}
 char isseparator(char c) {return c == 0 || contains(c, ". \n\t\b\r");}
@@ -157,12 +153,9 @@ Atom* pushfunc(Atom* p, Func f) {
 // ]	        -   pull P to S
 // ;	        -   P
 // !            -   point to stack[1]
-// ,	        -   new empty node
+// ,	        -   pull
 Atom* S, *R;
 Atom* token(Atom* p, char* c);
-Atom* searchsymbol(Atom* a, Atom* p) {
-
-}
 int charplen(char* c) {
     int n = 0;
     while (*c++) {n++;}
@@ -191,44 +184,32 @@ Atom* strfromcharplen(char* c, int len) {
 Atom* strfromcharp(char* c) {return strfromcharplen(c, charplen(c)+1);}
 Atom* createmultidot(int i) {
     Atom* t = new();
-    if (--i) {
-        return push(t, createmultidot(i));
-    }
-    t->f = func;
-    t->w.f = exec;
+    if (--i) {return push(t, createmultidot(i));}
+    t->f = exec;
+    t->w.f = dot;
     return t;
-    // Atom* t = new();
-    // if (!--i) {
-    //     t->f = func;
-    //     t->w.f = exec;
-    // }
-    // else {push(t, createmultidot(i))->t->e = true;}
-    // return t;
 }
 Atom* token(Atom* p, char* c) {
     int i = 0;
     for (; c[i] == '.'; i++);
-    if (i == 1) {return exec(p->t, p);}
-    if (i > 1) {
-        return push(p, createmultidot(i-1));
-        // Atom* t = tset(new(), 0);
-        // t->f = func;
-        // t->w.f = exec; i--;
-        // while (--i) {t = tset(new(), t);}
-        // return push(p, t);
-    }
+    if (i == 1) {push(p, createmultidot(1)); return dot(p->t, p);}
+    if (i > 1) {return push(p, createmultidot(i));}
     if (c[0] == ':') {
         if (c[1] == 0) {return pushnew(p, R);}
         return push(p, strfromcharp(c+1));
     }
-    if (c[0] == ',') {return pushnew(p, 0);}
+    if (c[0] == 'a') {return pushfunc(p, printer);}
+    if (c[0] == ',') {return pushfunc(p, pulls);}
     if (c[0] == '!') {return pushfunc(p, top);}
     if (c[0] == '[') {return pushfunc(p, open);}
     if (c[0] == ']') {return pushfunc(p, close);}
     if (c[0] == '"') {
-
+        // TODO //
+        return p;
     }
-    return pushfunc(p, printer);
+    if (c[0] == '0') {return pushnew(p, 0);}
+
+    return p;
 }
 void mainc() {
     R = ref(new()); R->e = true;
@@ -238,17 +219,15 @@ void mainc() {
     Atom* p = ref(new()); p->e = true;
     p = token(p, "a");
     p = token(p, ":hello");
-    p = token(p, ",");
+    p = token(p, "0");
     p = token(p, "[");
     p = token(p, ".");
     p = token(p, "a");
     p = token(p, "...");
     p = token(p, "]");
     p = token(p, ".");
-    p = token(p, ".");
-    // p = token(p, ".");
-    // // p = token(p, ".");
-    // // tset(p, nset(strfromcharp("hello"), p->t));
+    println(p);
+
     p = token(p, "[");
     p = token(p, ".");
     p = token(p, "[");
@@ -259,16 +238,20 @@ void mainc() {
     p = token(p, "]");
     p = token(p, ".");
 
-    // p = token(p, "a");
     p = token(p, "a");
     p = token(p, "a");
     p = token(p, "a");
-
-
     p = token(p, "..");
     p = token(p, ".");
     p = token(p, ".");
 
+    p = token(p, "a");
+    p = token(p, "a");
+    p = token(p, "a");
+    p = token(p, "...");
+    p = token(p, ".");
+    p = token(p, ".");
+
     p = token(p, "[");
     p = token(p, ".");
     p = token(p, "a");
@@ -285,6 +268,7 @@ void mainc() {
     p = token(p, "]");
     p = token(p, ".");
 
+    p = token(p, ".");
     println(p);
     del(p);
     del(R);
