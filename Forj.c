@@ -30,7 +30,13 @@ Atom* del(Atom* a) {
     if (!a) {return a;}
     if (--a->r) {return a;}
     if (a->f == vect) {freevect(a->w.v);}
-    del(a->n); del(a->t);
+    Atom* e = a->t;
+    while (e) {
+        if (e->e) {e->n = 0;}
+        e = e->n;
+    }
+    del(a->n);
+    del(a->t);
     reclaim(a, sizeof(struct Atom));
     return 0;
 }
@@ -68,7 +74,9 @@ void print(Atom* a, int depth) {
     else if (a->f == exec) {DARKRED;}
     else if (a->f == vect) {RED;}
     else if (a->f == atom) {YELLOW;}
-    if (a->w.f == dot) {puts("dot");}
+    printint((Word) a, 8);
+    putchar(' ');
+    if (a->f == exec) {puts("dot");}
     else {printint(a->w.w, 4);}
     if (a->r != 1) {RED; printint(a->r, 4);}
     RESET; puts("\n");
@@ -98,20 +106,25 @@ Atom* dup(Atom* a, Atom* p) {
 Atom* array(Atom* a, Atom* p) {
     p = (!ref(a)->e) ? array(a->n, p) : p;
     if (a->f == exec) {
-        dot(p->t, p);
+        if (a->t) {dup(a->t, p);}
+        else {p = dot(p->t, p);}
     }
-    else {dup(a, p);}
+    else {
+        dup(a, p);
+    }
     del(a);
     return p;
 }
 Atom* dot(Atom* a, Atom* p) {
+    a = p->t;
+    if (a->f == func) {return a->w.f(a, p);}
+    a = ref(a);
     pull(p);
-    if (p->t->f == func) {
-        return p->t->w.f(p->t, p);
+    if (a->f == exec) {
+        if (a->t) {dup(a->t, p);}
+        else {dot(a, p);}
     }
-    a = ref(p->t);
-    pull(p);
-    p = array(a->t, p);
+    else {p = array(a->t, p);}
     del(a);
     return p;
 }
@@ -154,7 +167,7 @@ Atom* pushfunc(Atom* p, Func f) {
 // ;	        -   P
 // !            -   point to stack[1]
 // ,	        -   pull
-Atom* S, *R;
+Atom* S, *R, *P;
 Atom* token(Atom* p, char* c);
 int charplen(char* c) {
     int n = 0;
@@ -163,40 +176,42 @@ int charplen(char* c) {
 }
 Atom* newvect(int maxlen) {
     Vect* v = valloclen(maxlen);
-    Atom* a = new();
-    a->f = vect;
-    a->w.v = v;
+    Atom* a = pushnew(new(), 0);
+    a->t->f = vect;
+    a->t->w.v = v;
+    v->len = maxlen;
     return a;
 }
 Atom* pushvect(Atom* a, Atom* p) {
-    int maxlen = p->t->w.w; pull(p);
-    return tset(p, nset(newvect(maxlen), p->t));
+    int maxlen = a->w.w;
+    pull(p);
+    return push(p, newvect(maxlen));
 }
-Atom* strfromcharplen(char* c, int len) {
+Atom* newstrlen(char* c, int len) {
     Atom* s = new();
     pushnew(s, 0);
-    s->t->w.w = len;
+    s->w.w = len;
     pushvect(s, s);
-    cpymem(s->t->w.v->v, c, s->t->w.v->maxlen);
+    cpymem(s->t->t->w.v->v, c, s->t->t->w.v->maxlen);
     pushnew(s, S->t);
     return token(s, "..");
 }
-Atom* strfromcharp(char* c) {return strfromcharplen(c, charplen(c)+1);}
+Atom* newstr(char* c) {return newstrlen(c, charplen(c)+1);}
 Atom* createmultidot(int i) {
     Atom* t = new();
-    if (--i) {return push(t, createmultidot(i));}
     t->f = exec;
+    if (--i) {return push(t, createmultidot(i));}
     t->w.f = dot;
     return t;
 }
 Atom* token(Atom* p, char* c) {
     int i = 0;
     for (; c[i] == '.'; i++);
-    if (i == 1) {push(p, createmultidot(1)); return dot(p->t, p);}
-    if (i > 1) {return push(p, createmultidot(i));}
+    if (i == 1) {return dot(p->t, p);}
+    if (i > 1) {return push(p, createmultidot(i-1));}
     if (c[0] == ':') {
         if (c[1] == 0) {return pushnew(p, R);}
-        return push(p, strfromcharp(c+1));
+        return push(p, newstr(c+1));
     }
     if (c[0] == 'a') {return pushfunc(p, printer);}
     if (c[0] == ',') {return pushfunc(p, pulls);}
@@ -216,61 +231,73 @@ void mainc() {
     S = ref(new()); S->e = true;
     pushfunc(S, printer);
     S = token(S, "..");
-    Atom* p = ref(new()); p->e = true;
-    p = token(p, "a");
-    p = token(p, ":hello");
-    p = token(p, "0");
-    p = token(p, "[");
-    p = token(p, ".");
-    p = token(p, "a");
-    p = token(p, "...");
-    p = token(p, "]");
-    p = token(p, ".");
-    println(p);
+    P = ref(new()); P->e = true;
+    P = token(P, "a");
+    P = token(P, ":hello");
+    P = token(P, "."); // OK
+    P = token(P, "0");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, "a");
+    P = token(P, "...");
+    P = token(P, "]");
+    P = token(P, ".");
+    
+    P = token(P, ".");
+    P = token(P, "."); // OK
 
-    p = token(p, "[");
-    p = token(p, ".");
-    p = token(p, "[");
-    p = token(p, ".");
-    p = token(p, "a");
-    p = token(p, "]");
-    p = token(p, ".");
-    p = token(p, "]");
-    p = token(p, ".");
+    P = token(P, "0");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, "0");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, "a");
+    P = token(P, "]");
+    P = token(P, ".");
+    P = token(P, "]");
+    P = token(P, ".");
+    P = token(P, ".");
 
-    p = token(p, "a");
-    p = token(p, "a");
-    p = token(p, "a");
-    p = token(p, "..");
-    p = token(p, ".");
-    p = token(p, ".");
+    P = token(P, "a");
+    P = token(P, "a");
+    P = token(P, "a");
+    P = token(P, "...");
+    P = token(P, ".");
+    P = token(P, "."); // OK
+    P = token(P, "."); // OK
 
-    p = token(p, "a");
-    p = token(p, "a");
-    p = token(p, "a");
-    p = token(p, "...");
-    p = token(p, ".");
-    p = token(p, ".");
+    P = token(P, "0");
+    P = token(P, "a");
+    P = token(P, "...");
+    P = token(P, ".");
+    P = token(P, "."); // OK
 
-    p = token(p, "[");
-    p = token(p, ".");
-    p = token(p, "a");
-    p = token(p, "a");
-    p = token(p, "a");
-    p = token(p, "a");
-    p = token(p, "]");
-    p = token(p, ".");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, "0");
+    P = token(P, "a");
+    P = token(P, "a");
+    P = token(P, "a");
+    P = token(P, "]");
+    P = token(P, ".");
 
-    p = token(p, "[");
-    p = token(p, ".");
-    // p = token(p, ".");
-    p = token(p, "..");
-    p = token(p, "]");
-    p = token(p, ".");
+    P = token(P, "[");
+    P = token(P, ".");
+    // P = token(P, ".");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, "0");
+    P = token(P, "]");
+    P = token(P, ".");
+    P = token(P, "...");
+    P = token(P, "]");
+    P = token(P, ".");
 
-    p = token(p, ".");
-    println(p);
-    del(p);
+    P = token(P, "."); 
+    P = token(P, "."); // OK
+    println(P);
+    del(P);
     del(R);
     del(S);
 }

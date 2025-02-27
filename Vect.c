@@ -1,10 +1,10 @@
-#ifdef __linux__
+#ifdef __riscv
+#include "alloc.c"
+#else
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.c"
 extern void reclaim(void* b_, Word a) {free(b_);}
-#else
-#include "../rv64/alloc.c"
 #endif
 
 typedef char byte;
