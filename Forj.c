@@ -53,9 +53,13 @@ Atom* nset(Atom* a, Atom* n) {
     ref(n); del(a->n); a->n = n; return a;
 }
 Atom* tset(Atom* a, Atom* t) {ref(t); del(a->t); a->t = t; return a;}
-Atom* pull(Atom* p) {return tset(p, p->t->n);}
 Atom* push(Atom* p, Atom* a) {
     if (p->t) {
+        if (p->t->e == 2) {
+            nset(a, p->t->n);
+            a->e = true;
+            return tset(p, a);
+        }
         nset(a, p->t);
     }
     else {
@@ -65,6 +69,15 @@ Atom* push(Atom* p, Atom* a) {
     return tset(p, a);
 }
 Atom* pushnew(Atom* p, Atom* t) {return push(p, tset(new(), t));}
+Atom* pull(Atom* p) {
+    if (p->t->e) {
+        pushnew(p, 0);
+        nset(p->t, p->t->n->n);
+        p->t->e = 2;
+        return p;
+    }
+    return tset(p, p->t->n);
+}
 
 Atom* dot(Atom* a, Atom* p);
 void print(Atom* a, int depth) {
@@ -146,18 +159,6 @@ Atom* top(Atom* a, Atom* p) {
 }
 Atom* pulls(Atom* a, Atom* p) {return pull(p);}
 
-char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} return c;}
-char isseparator(char c) {return c == 0 || contains(c, ". \n\t\b\r");}
-Atom* printer(Atom* a, Atom* p) {
-    puts("OKOKOK\n");
-    return pull(p);
-}
-Atom* pushfunc(Atom* p, Func f) {
-    pushnew(p, 0);
-    p->t->w.f = f;
-    p->t->f = func;
-    return p;
-}
 // .	        -   dot - execute
 // :	        -   root directory
 // :symbol      -   searches stack[1] for a matching symbol.
@@ -169,6 +170,50 @@ Atom* pushfunc(Atom* p, Func f) {
 // ,	        -   pull
 Atom* S, *R, *P;
 Atom* token(Atom* p, char* c);
+char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} return c;}
+char isseparator(char c) {return c == 0 || contains(c, ". \n\t\b\r");}
+bool equstr(Atom* a, Atom* b) {
+    char* as = a->t->w.v->v;
+    char* bs = b->t->w.v->v;
+    for (int i = 0; i < a->t->w.v->len; i++) {
+        if (as[i] != bs[i]) {return false;}
+    }
+    return true;
+}
+Atom* printer(Atom* a, Atom* p) {
+    puts("OKOKOK\n");
+    return pull(p);
+}
+Atom* scan(Atom* a, Atom* p) {
+    pull(p);
+    Atom* s = p->t;
+    pull(p);
+    // a = (p->t) ? p->t : p->n->t;
+    a = p->t;
+    while (a) {
+        if (a->t && a->t->n &&
+            a->t->n->t == S->t &&
+            equstr(a->t->n->n, s)) {
+             
+            pushnew(p, a->n->t);
+            p->t->f = a->n->f;
+            p->t->w.w = a->n->w.w;
+            return p;
+        }
+        a = a->n;
+    }
+    return p;
+}
+Atom* search(Atom* a, Atom* p) {
+    // scan all
+    return pull(p);
+}
+Atom* pushfunc(Atom* p, Func f) {
+    pushnew(p, 0);
+    p->t->w.f = f;
+    p->t->f = func;
+    return p;
+}
 int charplen(char* c) {
     int n = 0;
     while (*c++) {n++;}
@@ -223,18 +268,54 @@ Atom* token(Atom* p, char* c) {
         return p;
     }
     if (c[0] == '0') {return pushnew(p, 0);}
+    if (c[0] == '5') {
+        pushnew(p, 0);
+        p->t->w.w = 5;
+        return p;
+    }
+    if (c[0] == '8') {
+        pushnew(p, 0);
+        p->t->w.w = 8;
+        return p;
+    }
 
     return p;
 }
 void mainc() {
     R = ref(new()); R->e = true;
     S = ref(new()); S->e = true;
-    pushfunc(S, printer);
+    pushfunc(S, scan);
     S = token(S, "..");
     P = ref(new()); P->e = true;
     P = token(P, "a");
-    P = token(P, ":hello");
-    P = token(P, "."); // OK
+    P = token(P, "5");
+    P = token(P, "5");
+    P = token(P, "8");
+    // P = token(P, ":hello");
+    P = token(P, ":hi");
+
+    P = token(P, "0");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, "0");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, ":hi");
+    P = token(P, "]");
+    P = token(P, ".");
+    P = token(P, ".");
+    P = token(P, ".");
+    P = token(P, "]");
+    P = token(P, ".");
+
+    P = token(P, "0");
+    P = token(P, "[");
+    P = token(P, ".");
+    P = token(P, ":hi");
+    P = token(P, ".");
+    P = token(P, "]");
+    P = token(P, ".");
+    
     P = token(P, "0");
     P = token(P, "[");
     P = token(P, ".");
