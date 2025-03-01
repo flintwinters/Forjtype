@@ -188,7 +188,6 @@ Atom* scan(Atom* a, Atom* p) {
     pull(p);
     Atom* s = p->t;
     pull(p);
-    // a = (p->t) ? p->t : p->n->t;
     a = p->t;
     while (a) {
         if (a->t && a->t->n &&
@@ -277,6 +276,15 @@ Atom* strtoint(Atom* a, Atom* p) {
     push(p, l);
     return p;
 }
+Atom* pushstr(Atom* p, char* c) {
+    int i = 0;
+    while (1) {
+        if (c[i] == '"') {break;}
+        if (c[i] == '\\') {i++;}
+        i++;
+    }
+    return push(p, newstrlen(c, i));
+}
 Atom* token(Atom* p, char* c) {
     int i = 0;
     for (; c[i] == '.'; i++);
@@ -292,26 +300,17 @@ Atom* token(Atom* p, char* c) {
     if (c[0] == '[') {return pushfunc(p, open);}
     if (c[0] == ']') {return pushfunc(p, close);}
     if (c[0] == '"') {
-        // TODO //
-        return p;
+        return pushstr(p, c+1);
     }
     if (contains(c[0], "0123456789")) {
         push(p, newstr(c));
         pushfunc(p, strtoint);
         return token(p, ".");
     }
-    // if (c[0] == '0') {return pushnew(p, 0);}
-    // if (c[0] == '5') {
-    //     pushnew(p, 0);
-    //     p->t->w.w = 5;
-    //     return p;
-    // }
-    // if (c[0] == '8') {
-    //     pushnew(p, 0);
-    //     p->t->w.w = 8;
-    //     return p;
-    // }
     return p;
+}
+Atom* tokens(Atom* p, char* c) {
+    // Repeatedly call token() //
 }
 void mainc() {
     R = ref(new()); R->e = true;
@@ -324,7 +323,7 @@ void mainc() {
     P = token(P, "5");
     P = token(P, "8");
     // P = token(P, ":hello");
-    P = token(P, ":hi");
+    P = token(P, "\"hi\"");
 
     P = token(P, "0");
     P = token(P, "[");
