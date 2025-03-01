@@ -249,6 +249,34 @@ Atom* createmultidot(int i) {
     t->w.f = dot;
     return t;
 }
+
+Atom* strtoint(Atom* a, Atom* p) {
+    pull(p);
+    Vect* v = p->t->t->n->n->t->w.v;
+    Atom* l = new();
+    l->w.w = 0;
+    int b = 10;
+    char* str = v->v;
+    Word i = 0;
+    bool neg = false;
+    if (str[i] == '-') {neg = true; i--;}
+    if (str[i] == '0') {
+        if (str[i-1] == 'x') {b = 0x10; i += 2;}
+        if (str[i-1] == 'b') {b = 2; i += 2;}
+    }
+    while (i < v->len-1) {
+        l->w.w *= b;
+        if (str[i] >= 'a' && str[i] <= 'f') {
+            l->w.w += str[i]-'a';
+        }
+        else {l->w.w += str[i]-'0';}
+        i++;
+    }
+    if (neg) {l->w.w *= -1;}
+    pull(p);
+    push(p, l);
+    return p;
+}
 Atom* token(Atom* p, char* c) {
     int i = 0;
     for (; c[i] == '.'; i++);
@@ -267,18 +295,22 @@ Atom* token(Atom* p, char* c) {
         // TODO //
         return p;
     }
-    if (c[0] == '0') {return pushnew(p, 0);}
-    if (c[0] == '5') {
-        pushnew(p, 0);
-        p->t->w.w = 5;
-        return p;
+    if (contains(c[0], "0123456789")) {
+        push(p, newstr(c));
+        pushfunc(p, strtoint);
+        return token(p, ".");
     }
-    if (c[0] == '8') {
-        pushnew(p, 0);
-        p->t->w.w = 8;
-        return p;
-    }
-
+    // if (c[0] == '0') {return pushnew(p, 0);}
+    // if (c[0] == '5') {
+    //     pushnew(p, 0);
+    //     p->t->w.w = 5;
+    //     return p;
+    // }
+    // if (c[0] == '8') {
+    //     pushnew(p, 0);
+    //     p->t->w.w = 8;
+    //     return p;
+    // }
     return p;
 }
 void mainc() {
