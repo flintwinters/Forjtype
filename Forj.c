@@ -155,7 +155,7 @@ Atom* close(Atom* a, Atom* p) {
 }
 Atom* top(Atom* a, Atom* p) {
     pull(p);
-    return push(p, p->t);
+    return pushnew(p, p->t);
 }
 Atom* pulls(Atom* a, Atom* p) {return pull(p);}
 
@@ -223,7 +223,7 @@ Atom* newvect(int maxlen) {
     Atom* a = pushnew(new(), 0);
     a->t->f = vect;
     a->t->w.v = v;
-    v->len = maxlen;
+    a->w.w = v->len = maxlen;
     return a;
 }
 Atom* pushvect(Atom* a, Atom* p) {
@@ -234,8 +234,8 @@ Atom* pushvect(Atom* a, Atom* p) {
 Atom* newstrlen(char* c, int len) {
     Atom* s = new();
     pushnew(s, 0);
-    s->w.w = len;
-    pushvect(s, s);
+    s->t->w.w = len;
+    pushvect(s->t, s);
     cpymem(s->t->t->w.v->v, c, s->t->t->w.v->maxlen);
     pushnew(s, S->t);
     return token(s, "..");
@@ -283,7 +283,21 @@ Atom* pushstr(Atom* p, char* c) {
         if (c[i] == '\\') {i++;}
         i++;
     }
-    return push(p, newstrlen(c, i));
+    Atom* s = new();
+    pushnew(s, 0);
+    s->t->w.w = i;
+    Vect* v = pushvect(s->t, s)->t->t->w.v;
+    pushnew(s, S->t);
+    token(s, "..");
+    i = 0;
+    while (1) {
+        if (c[i] == '"') {break;}
+        if (c[i] == '\\') {i++;}
+        v->v[i] = c[i];
+        i++;
+    }
+    v->v[i+1] = 0;
+    return push(p, s);
 }
 Atom* token(Atom* p, char* c) {
     int i = 0;
