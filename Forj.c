@@ -80,6 +80,11 @@ Atom* pull(Atom* p) {
     }
     return tset(p, p->t->n);
 }
+Atom* pulln(Atom* p) {
+    Atom* a = ref(p->t);
+    pull(p);
+    return a;
+}
 
 Atom* dot(Atom* a, Atom* p);
 bool isstr(Atom* str) {return str->t && str->t->n && str->t->n->t == S->t;}
@@ -161,9 +166,20 @@ Atom* open(Atom* a, Atom* p) {
 Atom* close(Atom* a, Atom* p) {
     pull(p);
     tset(p->n->t, p->t);
-    Atom* n = ref(p->n);
+    Atom* n = p->n;
     del(p);
-    return del(n);
+    return n;
+}
+Atom* swap(Atom* a, Atom* p) {
+    pull(p);
+    Atom* b = p->t->n;
+    p->t->n = p->t->n->n;
+    b->n = p->t;
+    p->t = b;
+    short e = b->e;
+    b->e = b->n->e;
+    b->n->e = e;
+    return p;
 }
 Atom* top(Atom* a, Atom* p) {
     pull(p);
@@ -288,24 +304,26 @@ Atom* strtoint(Atom* a, Atom* p) {
     pushw(p, n);
     return p;
 }
-Atom* charptostr(Atom* p, char* c) {
+int parsestrlen(Atom* p, char* c) {
     int i = 0;
     while (1) {
         if (c[i] == '"') {break;}
         if (c[i] == '\\') {i++;}
         i++;
     }
-    Atom* s = new();
-    pushw(s, i+1);
+    return i+1;
+}
+Atom* charptostr(Atom* p, char* c, int i) {
+    Atom* s = new(); pushw(s, i);
     Vect* v = pushvect(s->t, s)->t->t->w.v;
     pushnew(s, S->t);
     token(s, "..");
-    i = 0;
+    int j = i = 0;
     while (1) {
-        if (c[i] == '"') {break;}
-        if (c[i] == '\\') {i++;}
+        if (c[i+j] == '"') {break;}
+        if (c[i+j] == '\\') {j++;}
         // TODO: ADD \n, \t, ETC //
-        v->v[i] = c[i];
+        v->v[i] = c[i+j];
         i++;
     }
     v->v[i] = 0;
@@ -313,15 +331,17 @@ Atom* charptostr(Atom* p, char* c) {
 }
 Atom* splitstrat(Atom* a, Atom* p) {
     Word i = pullw(p);
-    Vect* str = getstrvect(p->t);
-    push(p, newstrlen(str->v+i, str->len-i));
-    str->v[i] = 0;
+    push(p, newstr(getstrvect(p->t)->v+i));
+    pushfunc(p, swap); token(p, ".");
+    getstrvect(p->t)->len = i;
+    getstrvect(p->t)->v[i] = 0;
     return p;
 }
 int indexofchar(Atom* s, char c) {
     Vect* str = getstrvect(s);
-    int i = str->len;
-    while (i--) {if (str->v[i] == c) {return i;}}
+    for (int i = 0; i < str->len; i++) {
+        if (str->v[i] == c) {return i;}
+    }
     return -1;
 }
 Atom* splitfind(Atom* a, Atom* p) {
@@ -329,14 +349,14 @@ Atom* splitfind(Atom* a, Atom* p) {
     char* c = getstrvect(s)->v;
     pull(p);
     Vect* str = getstrvect(p->t);
-    int i = str->len;
-    while (i--) {
+    int i = 0;
+    while (i < str->len) {
         if (contains(str->v[i], c)) {
             pushw(p, i); break;
         }
+        i++;
     }
-    if (i == -1) {}
-    splitstrat(0, p);
+    if (i != -1) {splitstrat(0, p);}
     del(s);
     return p;
 }
@@ -354,9 +374,7 @@ Atom* token(Atom* p, char* c) {
     if (c[0] == '!') {return pushfunc(p, top);}
     if (c[0] == '[') {return pushfunc(p, open);}
     if (c[0] == ']') {return pushfunc(p, close);}
-    if (c[0] == '"') {
-        return charptostr(p, c+1);
-    }
+    if (c[0] == '"') {return charptostr(p, c+1, parsestrlen(p, c+1));}
     if (contains(c[0], "0123456789")) {
         push(p, newstr(c));
         pushfunc(p, strtoint);
@@ -364,11 +382,46 @@ Atom* token(Atom* p, char* c) {
     }
     return p;
 }
-Atom* tokens(Atom* p, char* c) {
-    // Repeatedly call token() //
-    Atom* s = ref(newstr(" \n\t\b\r."));
-    push(p, s);
-    splitfind(0, p);
+Atom* tokens(Atom* p) {
+    char* c = " \n\t\b\r\"";
+    Vect* str = getstrvect(p->t);
+    int i = 0;
+    while (contains(str->v[i], c)) {i++;}
+    char b = str->v[i-1];
+    if (i) {
+        pushw(p, i);
+        splitstrat(0, p);
+        pull(p);
+        str = getstrvect(p->t);
+    }
+    if (b == '"') {
+        int j = parsestrlen(p, str->v);
+        pushw(p, j);
+        splitstrat(0, p);
+        Atom* s = pulln(p);
+        charptostr(p, getstrvect(s)->v, j);
+        del(s);
+        return p;
+    }
+    else {
+        for (i = 0; str->v[i] == '.'; i++);
+        if (!i) {
+            while (1) {
+                if (i == str->len) {return p;}
+                if (str->v[i] == '.' || contains(str->v[i], c)) {break;}
+                i++;
+            }
+        }
+    }
+    pushw(p, i);
+    splitstrat(0, p);
+    Atom* s = pulln(p);
+    pull(p);
+    nset(s->n, 0);
+    p = token(p, getstrvect(s)->v);
+    push(p, s->n);
+    del(s);
+    return tokens(p);
 }
 void mainc() {
     R = ref(new()); R->e = true;
@@ -376,26 +429,32 @@ void mainc() {
     pushfunc(S, scan);
     S = token(S, "..");
     P = ref(new()); P->e = true;
-    P = token(P, "a");
-    P = token(P, "5");
     P = token(P, "5");
     P = token(P, "8");
-    P = token(P, ":hello");
-    P = token(P, "\"hi\"");
-
-    P = token(P, "0");
-    P = token(P, "[");
-    P = token(P, ".");
-    P = token(P, "0");
-    P = token(P, "[");
-    P = token(P, ".");
+    // P = token(P, ":hello");
     P = token(P, ":hi");
-    P = token(P, "]");
-    P = token(P, ".");
-    P = token(P, ".");
-    P = token(P, ".");
-    P = token(P, "]");
-    P = token(P, ".");
+    // P = token(P, "\" a ... . . :hello \\\"a .\\\" a :hi\"");
+    // Atom* p;
+    // while ((p = tokens(P))) {P = p;};
+    // P = tokens(P);
+    // tokens(P);
+
+    P = token(P, "\"0 [. 0 [. :hi ]. . . ].\"");
+    P = tokens(P);
+    pull(P);
+    // P = token(P, "0");
+    // P = token(P, "[");
+    // P = token(P, ".");
+    // P = token(P, "0");
+    // P = token(P, "[");
+    // P = token(P, ".");
+    // P = token(P, ":hi");
+    // P = token(P, "]");
+    // P = token(P, ".");
+    // // P = token(P, ".");
+    // // P = token(P, ".");
+    // P = token(P, "]");
+    // P = token(P, ".");
 
     P = token(P, "0");
     P = token(P, "[");
@@ -434,7 +493,6 @@ void mainc() {
     P = token(P, "a");
     P = token(P, "...");
     P = token(P, ".");
-    P = token(P, "."); // OK
     P = token(P, "."); // OK
 
     P = token(P, "0");
