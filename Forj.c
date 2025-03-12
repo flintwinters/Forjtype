@@ -115,28 +115,35 @@ Word pullw(Atom* p) {
     return w;
 }
 
+void printvect(Vect* v) {
+    for (int i = 0; i < v->len-1; i++) {
+        putchar(v->v[i]);
+    }
+}
 void print(Atom* a, int depth) {
     if (!a) {puts("None\n"); return;}
     if (a->e == 2) {DARKGREEN;}
     else if (a->f == word) {BLACK;}
-    else if (a->f == func) {GREEN;}
+    else if (a->f == func) {GREEN; puts("exec");}
     else if (a->f == exec) {DARKRED;}
     else if (a->f == vect) {RED;}
     else if (a->f == atom) {YELLOW;}
-    printint((Word) a, 8);
-    putchar(' ');
+    // printint((Word) a, 8);
+    // putchar(' ');
     if (a->f == exec) {puts("dot");}
-    else if (a->f == vect) {
-        puts(a->w.v->v);
+    else if (a->f == vect) {printvect(a->w.v);}
+    else if (a->f == word) {
+        printint(a->w.w, 4);
     }
-    else {printint(a->w.w, 4);}
     if (a->r != 1) {RED; printint(a->r, 4);}
     if (a->e) {
-        DARKGREEN; putchar(' ');
-        printint((Word) a->n, 4);
+        DARKGREEN; puts(" e");
+        if (!a->n) {putchar('0');}
+        // printint((Word) a->n, 4);
     }
-    RESET; puts("\n");
+    RESET; 
     if (a->t) {
+        puts("\n");
         PURPLE;
         for (int i = 0; i < depth+1; i++) {puts("  ");}
         if (a->t->e) {puts(" ┗ ");}
@@ -144,6 +151,7 @@ void print(Atom* a, int depth) {
         print(a->t, depth+1);
     }
     if (!a->e) {
+        puts("\n");
         DARKYELLOW;
         for (int i = 0; i < depth; i++) {puts("  ");}
         if (a->n->e) {puts(" ┗ ");}
@@ -151,7 +159,7 @@ void print(Atom* a, int depth) {
         print(a->n, depth);
     }
 }
-void println(Atom* a) {DARKYELLOW; puts("\n ┏ "); print(a, 0); putchar('\n');}
+void println(Atom* a) {DARKYELLOW; puts(" ┏ "); print(a, 0); putchar('\n');}
 
 // Duplicates a onto p
 Atom* dup(Atom* a, Atom* p) {
@@ -273,12 +281,6 @@ bool equstr(char* a, char* b) {
     if (*a) {return false;}
     return true;
 }
-// Test function
-// Consumes nothing.
-Atom* printer(Atom* a, Atom* p) {
-    puts("OKOKOK\n");
-    return pull(p);
-}
 Atom* scan(Atom* a, Atom* p);
 // Safetly checks if the atom holds a string
 // In the future, methods will be written in Forj to 
@@ -290,6 +292,13 @@ bool isstr(Atom* str) {
 // Convenience function gets the Vect from a string.
 Vect* getstrvect(Atom* str) {return get(str->t, 6)->t->w.v;}
 
+// Convenience function to push a function pointer
+Atom* pushfunc(Atom* p, Func f) {
+    pushnew(p, 0);
+    p->t->w.f = f;
+    p->t->f = func;
+    return p;
+}
 // Searches straight down.  If a list has a marked parent,
 // It will be searched as well.
 // This is related to the :symbol functionality.
@@ -313,13 +322,6 @@ Atom* scan(Atom* a, Atom* p) {
     }
     del(s);
     pushw(p, 0);
-    return p;
-}
-// Convenience function to push a function pointer
-Atom* pushfunc(Atom* p, Func f) {
-    pushnew(p, 0);
-    p->t->w.f = f;
-    p->t->f = func;
     return p;
 }
 // Returns the length of the char*
@@ -452,7 +454,6 @@ Atom* token(Atom* p, char* c) {
     if (i == 1) {return dot(p->t, p);}
     if (i > 1) {return push(p, createmultidot(i-1));}
     if (c[0] == ':') {return push(p, newstr(c+1));}
-    if (c[0] == 'a') {return pushfunc(p, printer);}
     if (c[0] == ',') {return pushfunc(p, pulls);}
     if (c[0] == ';') {return pushfunc(p, throw);}
     if (c[0] == '!') {return pushfunc(p, top);}
@@ -512,97 +513,24 @@ Atom* tokens(Atom* p) {
     del(s);
     return tokens(p);
 }
-void mainc() {
-    P = ref(new()); P->e = true;
-    P = token(P, "52");
-    P = token(P, ":hi");
-    P = token(P, "81");
-    P = token(P, "\" 0 [. 15 :blah ]. \"");
+int main() {
+// linux only
+    FILE* FP = fopen("challenge", "r");
+    fseeko(FP, 0, SEEK_END);
+    int i = ftell(FP);
+    char program[i+1];
+    char* prog = program;
+    rewind(FP);
+    while (!feof(FP)) {*prog++ = fgetc(FP);}
+    *--prog = 0;
+    fclose(FP);
+
+    P = ref(new());
+    P->e = true;
+    push(P, newstr(program));
     P = tokens(P);
-    pull(P);
-    P = token(P, ":hello");
+    P = pull(P);
 
-    P = token(P, "hello");
-    P = token(P, ":blah");
-    P = token(P, ".");
-    // P = token(P, "!");
-    // P = token(P, ".");
-    // P = token(P, ".");
-    // // P = token(P, "\" a ... . . :hello \\\"a .\\\" a :hi\"");
-    // // Atom* p;
-    // // while ((p = tokens(P))) {P = p;};
-    // // P = tokens(P);
-    // // tokens(P);
-    
-    // // P = token(P, "\"[.  ].\"");
-    // P = token(P, "\"0 [. 0 [. :hi ]. . . :blah . ].\"");
-    // P = tokens(P);
-    // pull(P);
-
-    P = token(P, "0");
-    P = token(P, "[");
-    P = token(P, ".");
-    P = token(P, "hi");
-    P = token(P, "]");
-    P = token(P, ".");
-    
-    P = token(P, "0");
-    P = token(P, "[");
-    P = token(P, ".");
-    P = token(P, "a");
-    P = token(P, "...");
-    P = token(P, "]");
-    P = token(P, ".");
-    
-    P = token(P, ".");
-    P = token(P, "."); // OK
-
-    P = token(P, "0");
-    P = token(P, "[");
-    P = token(P, ".");
-    P = token(P, "0");
-    P = token(P, "[");
-    P = token(P, ".");
-    P = token(P, "a");
-    P = token(P, "..");
-    P = token(P, "]");
-    P = token(P, ".");
-    P = token(P, "..");
-    P = token(P, "]");
-    P = token(P, ".");
-    P = token(P, "."); // OK
-
-    P = token(P, "a");
-    P = token(P, "a");
-    P = token(P, "a");
-    P = token(P, "...");
-    P = token(P, ".");
-    P = token(P, "."); // OK
-
-    P = token(P, "[");
-    P = token(P, ".");
-    P = token(P, "0");
-    P = token(P, "a");
-    P = token(P, "a");
-    P = token(P, "a");
-    P = token(P, "]");
-    P = token(P, ".");
-
-    P = token(P, "[");
-    P = token(P, ".");
-    // P = token(P, ".");
-    P = token(P, "[");
-    P = token(P, ".");
-    P = token(P, "0");
-    P = token(P, "]");
-    P = token(P, ".");
-    P = token(P, "...");
-    P = token(P, "]");
-    P = token(P, ".");
-
-    // P = token(P, "."); 
-    // P = token(P, "."); // OK
     println(P);
     del(P);
 }
-int main() {mainc();}

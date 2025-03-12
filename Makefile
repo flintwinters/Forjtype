@@ -1,5 +1,7 @@
+all:
+	@python3 challenger.py
 fj: Forj.c Vect.c
-	gcc Forj.c -g -o fj
+	@gcc Forj.c -g -o fj
 rv: 
 	@riscv64-unknown-elf-as setup.s -g -o setup.o &&\
 	riscv64-unknown-elf-gcc \
@@ -38,6 +40,9 @@ rv:
 	)
 	pkill -f qemu-system-riscv64
 val: fj
-	valgrind ./fj
+	@valgrind --errors-for-leak-kinds=all --error-exitcode=1 --leak-check=full --show-leak-kinds=all ./fj 2> val.log || \
+	if [ $$? -ne 0 ]; then \
+		echo "\033[31;1mValgrind: Errors or leaks found. Check val.log\033[0m"; \
+	fi
 gdb: fj
-	gdb ./fj
+	gdb --args ./fj challenge
