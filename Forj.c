@@ -489,17 +489,8 @@ Atom* tokens(Atom* p) {
         pull(p);
         str = getstrvect(p->t);
     }
-    if (b == '"') {
-        debug(p);
-        int j = parsestrlen(p, str->v);
-        pushw(p, j);
-        splitstrat(0, p);
-        Atom* s = pulln(p);
-        charptostr(p, getstrvect(s)->v, j);
-        del(s);
-        pushfunc(p, swap); p = token(p, ".");
-        return p;
-    }
+    debug(p);
+    if (b == '"') {i = parsestrlen(p, str->v);}
     else {
         for (i = 0; str->v[i] == '.'; i++);
         if (!i) {
@@ -513,9 +504,17 @@ Atom* tokens(Atom* p) {
     pushw(p, i);
     splitstrat(0, p);
     Atom* s = pulln(p);
-    pull(p);
-    p = token(p, getstrvect(s)->v);
-    push(p, s->n);
+    Vect* v = getstrvect(s);
+    if (b == '"') {
+        charptostr(p, v->v, i);
+        pushfunc(p, swap);
+        p = token(p, ".");
+    }
+    else {
+        pull(p);
+        p = token(p, v->v);
+        push(p, s->n);
+    }
     del(s);
     return tokens(p);
 }

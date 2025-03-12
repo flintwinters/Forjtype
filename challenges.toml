@@ -291,10 +291,14 @@ result = """
 """
 
 [string2]
-challenge = ' "hi" [. 1 ]. '
+challenge = ' 1 [. 1 2 3 ]. "hi" [. 5 6 7 ]. 15'
 result = """
 ┏ x e0
-  ┗ x e
+  ┣ xf
+  ┣ x
+    ┣ x7
+    ┣ x6
+    ┣ x5
     ┣ dot
     ┣ exec
     ┣ dot
@@ -305,4 +309,8 @@ result = """
       ┗ hi e
     ┣ dot
     ┗ exec e
+  ┗ x1 e0
+    ┣ x3
+    ┣ x2
+    ┗ x1 e
 """
