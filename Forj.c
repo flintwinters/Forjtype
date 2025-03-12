@@ -146,20 +146,20 @@ void print(Atom* a, int depth) {
         puts("\n");
         PURPLE;
         for (int i = 0; i < depth+1; i++) {puts("  ");}
-        if (a->t->e) {puts(" ┗ ");}
-        else {puts(" ┣ ");}
+        if (a->t->e) {puts("┗ ");}
+        else {puts("┣ ");}
         print(a->t, depth+1);
     }
     if (!a->e) {
         puts("\n");
         DARKYELLOW;
         for (int i = 0; i < depth; i++) {puts("  ");}
-        if (a->n->e) {puts(" ┗ ");}
-        else {puts(" ┣ ");}
+        if (a->n->e) {puts("┗ ");}
+        else {puts("┣ ");}
         print(a->n, depth);
     }
 }
-void println(Atom* a) {DARKYELLOW; puts(" ┏ "); print(a, 0); putchar('\n');}
+void println(Atom* a) {DARKYELLOW; puts("┏ "); print(a, 0); putchar('\n');}
 
 // Duplicates a onto p
 Atom* dup(Atom* a, Atom* p) {
@@ -216,6 +216,7 @@ Atom* get(Atom* a, int i) {
 Atom* open(Atom* a, Atom* p) {
     pull(p);
     p = ref(nset(new(), p));
+    p->w.a = p->n->t;
     if (p->n->t) {
         if (p->n->t->t) {return tset(p, p->n->t->t);}
         else {pushe(p->n->t, p->n->t); return p;}
@@ -225,8 +226,8 @@ Atom* open(Atom* a, Atom* p) {
 // Close the current atom ]
 Atom* close(Atom* a, Atom* p) {
     pull(p);
-    if (get(p->t, -1)->n == p->n->t) {
-        tset(p->n->t, p->t);
+    if (p->w.a) {
+        tset(p->w.a, p->t);
     }
     Atom* n = p->n;
     del(p);
@@ -472,6 +473,9 @@ Atom* token(Atom* p, char* c) {
     del(s);
     return p;
 }
+void debug(Atom* p) {
+    return;
+}
 // Parses repeated tokens.
 Atom* tokens(Atom* p) {
     char* c = " \n\t\b\r\"";
@@ -486,12 +490,14 @@ Atom* tokens(Atom* p) {
         str = getstrvect(p->t);
     }
     if (b == '"') {
+        debug(p);
         int j = parsestrlen(p, str->v);
         pushw(p, j);
         splitstrat(0, p);
         Atom* s = pulln(p);
         charptostr(p, getstrvect(s)->v, j);
         del(s);
+        pushfunc(p, swap); p = token(p, ".");
         return p;
     }
     else {
@@ -527,6 +533,7 @@ int main() {
 
     P = ref(new());
     P->e = true;
+    // P = token(P, "\"\\\"hi\\\"\"");
     push(P, newstr(program));
     P = tokens(P);
     P = pull(P);

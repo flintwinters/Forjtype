@@ -10,7 +10,7 @@ with open("challenges.toml", "r") as f:
     T = loads(f.read())
 
 def fail(name, s):
-    print(f"\033[31mfj FAIL : {name}\033[91;1m "+"─"*30+"\033[0m\n"+s)
+    print(f"\033[31;1m{name} "+"─"*30+"\033[0m\n"+s)
 
 def runforj(v):
     with open("challenge", "w") as f:
@@ -38,6 +38,7 @@ def main():
         s = runforj(v)
         if s:
             fail(k, s)
+            # system('make gdb')
             failed = True
 
     if not failed:
