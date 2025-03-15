@@ -29,6 +29,7 @@ Atom* new() {
     *a = (Atom) {0, 0, 0, 0, 0, 0};
     return a;
 }
+Atom* get(Atom* a, int i);
 // Deletes a reference to an atom.
 // If the atom reaches zero references, free its memory.
 // Also frees vects:
@@ -114,52 +115,6 @@ Word pullw(Atom* p) {
     pull(p);
     return w;
 }
-
-void printvect(Vect* v) {
-    for (int i = 0; i < v->len-1; i++) {
-        putchar(v->v[i]);
-    }
-}
-void print(Atom* a, int depth) {
-    if (!a) {puts("None\n"); return;}
-    if (a->e == 2) {DARKGREEN;}
-    else if (a->f == word) {BLACK;}
-    else if (a->f == func) {GREEN; puts("exec");}
-    else if (a->f == exec) {DARKRED;}
-    else if (a->f == vect) {RED;}
-    else if (a->f == atom) {YELLOW;}
-    // printint((Word) a, 8);
-    // putchar(' ');
-    if (a->f == exec) {puts("dot");}
-    else if (a->f == vect) {printvect(a->w.v);}
-    else if (a->f == word) {
-        printint(a->w.w, 4);
-    }
-    if (a->r != 1) {RED; printint(a->r, 4);}
-    if (a->e) {
-        DARKGREEN; puts(" e");
-        if (!a->n) {putchar('0');}
-        // printint((Word) a->n, 4);
-    }
-    RESET; 
-    if (a->t) {
-        puts("\n");
-        PURPLE;
-        for (int i = 0; i < depth+1; i++) {puts("  ");}
-        if (a->t->e) {puts("┗ ");}
-        else {puts("┣ ");}
-        print(a->t, depth+1);
-    }
-    if (!a->e) {
-        puts("\n");
-        DARKYELLOW;
-        for (int i = 0; i < depth; i++) {puts("  ");}
-        if (a->n->e) {puts("┗ ");}
-        else {puts("┣ ");}
-        print(a->n, depth);
-    }
-}
-void println(Atom* a) {DARKYELLOW; puts("┏ "); print(a, 0); putchar('\n');}
 
 // Duplicates a onto p
 Atom* dup(Atom* a, Atom* p) {
@@ -257,8 +212,8 @@ Atom* pulls(Atom* a, Atom* p) {pull(p); return pull(p);}
 Atom* throw(Atom* a, Atom* p) {
     pull(p);
     if (p->n) {
-        dup(a = pulln(p), p->n);
-        del(a);
+        dup(p->t, p->n);
+        pull(p);
     }
     return p;
 }
@@ -287,11 +242,11 @@ Atom* scan(Atom* a, Atom* p);
 // In the future, methods will be written in Forj to 
 // compare to templates, making this more elegant.
 bool isstr(Atom* str) {
-    str = get(str->t, 5);
+    str = get(str->t, 1);
     return str && str->w.f == scan;
 }
 // Convenience function gets the Vect from a string.
-Vect* getstrvect(Atom* str) {return get(str->t, 6)->t->w.v;}
+Atom* getstr(Atom* str) {return get(str->t, 2);}
 
 // Convenience function to push a function pointer
 Atom* pushfunc(Atom* p, Func f) {
@@ -300,29 +255,60 @@ Atom* pushfunc(Atom* p, Func f) {
     p->t->f = func;
     return p;
 }
-// Searches straight down.  If a list has a marked parent,
+Atom* runfunc(Atom* p, Func f) {
+    pushfunc(p, f);
+    return token(p, ".");
+}
+// Searches straight down.  If a list has a parent,
 // It will be searched as well.
+// This is used for implicit variable search: `val :name name`
 // This is related to the :symbol functionality.
 // Since one scan call leaves (a reference to the) the associated
 // variable on the top, :symbol2 can be called again to get
 // a variable from the second, interior layer.
-Atom* scan(Atom* a, Atom* p) {
-    pull(p);
-    Atom* s = pulln(p);
-    a = p->t;
-    while (a) {
+Atom* varscan(Atom* a, Atom* p, Atom* s) {
+    Atom* v = 0;
+    while (a && !a->e) {
         if (isstr(a) &&
-            equstr(getstrvect(a)->v, s->t->w.v->v)) {
-            pushnew(p, a->n->t);
-            p->t->f = a->n->f;
-            p->t->w.w = a->n->w.w;
-            del(s);
-            return p;
+            equstr(getstr(a)->t->w.v->v, s->t->w.v->v)
+            ) {
+            v = new();
+            tset(v, a->n->t);
+            v->f = a->n->f;
+            v->w.w = a->n->w.w;
+            break;
         }
         a = a->n;
     }
     del(s);
-    pushw(p, 0);
+    return v;
+}
+// 4 possible cases:
+// 1. implicit scan with variable name (varscan)
+// `val :name name`
+// Case: run directly when a token can't be found.
+//
+// 2. recursive scan (recscan)
+// `0 [. val1 [. val2 :name2 ]. :name1 ]. :name1 :name2.`
+// Notice only a single dot, :name2 dots :name1 implicitly
+// Case: scan notices that the next element is also a string.
+// (This means a string object cannot be normally searched for variables)
+//
+// 3. internal scan (intscan)
+// `0 [. val2 :name2 ]. :name2.`
+// Enters into the top element and searches down from there.
+// Case: else
+Atom* scan(Atom* a, Atom* p) {
+    pull(p);
+    Atom* s = pulln(p);
+    Atom* v;
+    if (isstr(p->t)) {
+        p = token(p, ".");
+        v = varscan(p->t->t, p, s);
+        pull(p);
+    }
+    else {v = varscan(p->t->t, p, s);}
+    if (v) {push(p, v);}
     return p;
 }
 // Returns the length of the char*
@@ -352,14 +338,8 @@ Atom* newrawstr(Atom* s, char* c, int len) {
 // Creates a string object
 Atom* newstrlen(char* c, int len) {
     Atom* s = new();
-    token(s, "[");
-    token(s, "..");
     newrawstr(s, c, len);
     pushfunc(s, scan);
-    token(s, "..");
-    token(s, ";");
-    token(s, "..");
-    token(s, "]");
     token(s, "..");
     return s;
 }
@@ -368,7 +348,7 @@ Atom* newstr(char* c) {return newstrlen(c, charplen(c)+1);}
 // Consumes the numeric string and outputs a literal
 Atom* strtoint(Atom* a, Atom* p) {
     pull(p);
-    Vect* v = getstrvect(p->t);
+    Vect* v = getstr(p->t)->t->w.v;
     int n = 0;
     int b = 10;
     char* str = v->v;
@@ -381,9 +361,7 @@ Atom* strtoint(Atom* a, Atom* p) {
     }
     while (i < v->len-1) {
         n *= b;
-        if (str[i] >= 'a' && str[i] <= 'f') {
-            n += str[i]-'a';
-        }
+        if (str[i] >= 'a' && str[i] <= 'f') {n += str[i]-'a';}
         else {n += str[i]-'0';}
         i++;
     }
@@ -396,26 +374,18 @@ Atom* strtoint(Atom* a, Atom* p) {
 // any backslashes
 // - Both this and charptostr need some work. -
 int parsestrlen(Atom* p, char* c) {
-    int i = 0;
+    int i, j;
+    i = j = 0;
     while (1) {
-        if (c[i] == '"') {break;}
-        if (c[i] == '\\') {i++;}
+        if (c[i+j] == '"') {break;}
+        if (c[i+j] == '\\') {j++;}
         i++;
     }
     return i+1;
 }
 Atom* charptostr(Atom* p, char* c, int i) {
-    Atom* s = new();
-    token(s, "[");
-    token(s, "..");
-    newrawstr(s, c, i);
-    pushfunc(s, scan);
-    token(s, "..");
-    token(s, ";");
-    token(s, "..");
-    token(s, "]");
-    token(s, "..");
-    Vect* v = getstrvect(s);
+    Atom* s = newstrlen(c, i);
+    Vect* v = getstr(s)->t->w.v;
     int j = i = 0;
     while (1) {
         if (c[i+j] == '"') {break;}
@@ -428,14 +398,28 @@ Atom* charptostr(Atom* p, char* c, int i) {
     return push(p, s);
 }
 
+Atom* find(Atom* a, char* c) {
+    if (!a || !a->t) {return 0;}
+    Atom* p = ref(new());
+
+    newrawstr(p, c, charplen(c)+1);
+    Atom* s = pulln(p);
+    Atom* v = varscan(a->t, p, s);
+    if (v) {push(p, v);}
+    s = pulln(p);
+    del(p);
+
+    return s;
+}
+
 // Breaks a string into two separate strings, at
 // the consumed integer index.
 Atom* splitstrat(Atom* a, Atom* p) {
     Word i = pullw(p);
-    push(p, newstr(getstrvect(p->t)->v+i));
-    pushfunc(p, swap); token(p, ".");
-    getstrvect(p->t)->len = i;
-    getstrvect(p->t)->v[i] = 0;
+    push(p, newstr(getstr(p->t)->t->w.v->v+i));
+    runfunc(p, swap);
+    getstr(p->t)->t->w.v->len = i;
+    getstr(p->t)->t->w.v->v[i] = 0;
     return p;
 }
 
@@ -448,13 +432,22 @@ Atom* createmultidot(int i) {
     t->w.f = dot;
     return t;
 }
+Atom* sayhi(Atom* a, Atom* p) {
+    pull(p);
+    puts("HI");
+    return p;
+}
 // Parses one token over the program p
 Atom* token(Atom* p, char* c) {
     int i = 0;
     for (; c[i] == '.'; i++);
     if (i == 1) {return dot(p->t, p);}
     if (i > 1) {return push(p, createmultidot(i-1));}
-    if (c[0] == ':') {return push(p, newstr(c+1));}
+    if (c[0] == ':') {
+        if (c[1]) {return push(p, newstr(c+1));}
+        return pushfunc(p, scan);
+    }
+    if (c[0] == 'a') {return pushfunc(p, sayhi);}
     if (c[0] == ',') {return pushfunc(p, pulls);}
     if (c[0] == ';') {return pushfunc(p, throw);}
     if (c[0] == '!') {return pushfunc(p, top);}
@@ -463,13 +456,12 @@ Atom* token(Atom* p, char* c) {
     if (c[0] == '"') {return charptostr(p, c+1, parsestrlen(p, c+1));}
     if (contains(c[0], "0123456789")) {
         push(p, newstr(c));
-        pushfunc(p, strtoint);
-        return token(p, ".");
+        return runfunc(p, strtoint);
     }
     newrawstr(p, c, charplen(c)+1);
-    Atom* s = ref(p->t);
-    pushfunc(p, scan);
-    token(p, ".");
+    Atom* s = pulln(p);
+    Atom* v = varscan(p->t, p, s);
+    if (v) {push(p, v);}
     del(s);
     return p;
 }
@@ -478,8 +470,9 @@ void debug(Atom* p) {
 }
 // Parses repeated tokens.
 Atom* tokens(Atom* p) {
-    char* c = " \n\t\b\r\"";
-    Vect* str = getstrvect(p->t);
+    // Splitting on these 
+    char* c = " \n\t\b\r";
+    Vect* str = getstr(p->t)->t->w.v;
     int i = 0;
     while (contains(str->v[i], c)) {i++;}
     char b = str->v[i-1];
@@ -487,7 +480,7 @@ Atom* tokens(Atom* p) {
         pushw(p, i);
         splitstrat(0, p);
         pull(p);
-        str = getstrvect(p->t);
+        str = getstr(p->t)->t->w.v;
     }
     debug(p);
     if (b == '"') {i = parsestrlen(p, str->v);}
@@ -504,11 +497,10 @@ Atom* tokens(Atom* p) {
     pushw(p, i);
     splitstrat(0, p);
     Atom* s = pulln(p);
-    Vect* v = getstrvect(s);
+    Vect* v = getstr(s)->t->w.v;
     if (b == '"') {
         charptostr(p, v->v, i);
-        pushfunc(p, swap);
-        p = token(p, ".");
+        p = runfunc(p, swap);
     }
     else {
         pull(p);
@@ -518,6 +510,57 @@ Atom* tokens(Atom* p) {
     del(s);
     return tokens(p);
 }
+
+void printvect(Vect* v) {
+    for (int i = 0; i < v->len-1; i++) {putchar(v->v[i]);}
+}
+void print(Atom* a, int depth);
+void printarr(Atom* a, int depth) {
+    puts("\n");
+    DARKYELLOW;
+    for (int i = 0; i < depth; i++) {puts("  ");}
+    if (a->e) {puts("┗ ");}
+    else {puts("┣ ");}
+    print(a, depth);
+}
+void print(Atom* a, int depth) {
+    if (!a) {puts("None\n"); return;}
+    Atom* s = find(a, "\"");
+    bool showt = false || a->t;
+    if (s && s->f == func) {
+        Atom* p = pushnew(ref(new()), a);
+        pushw(p, depth);
+        runfunc(p, s->w.f);
+        showt = false;
+        pull(p);
+        pull(p);
+        del(p);
+    }
+    else {
+        // printint((Word) a, 8);
+        // putchar(' ');
+        if (isstr(a)) {RED; printvect(getstr(a)->t->w.v); showt = false;}
+        else {
+            if (a->e == 2) {DARKGREEN;}
+            else if (a->f == word) {BLACK; printint(a->w.w, 4);}
+            else if (a->f == func) {GREEN; puts("func");}
+            else if (a->f == exec) {DARKRED; puts("dot");}
+            else if (a->f == vect) {RED; printvect(a->w.v);}
+            else if (a->f == atom) {YELLOW;}
+            if (a->r != 1) {RED; printint(a->r, 4);}
+            if (a->e) {
+                DARKGREEN; puts(" e");
+                if (!a->n) {putchar('0');}
+            }
+            RESET; 
+        }
+    }
+    del(s);
+    if (showt) {printarr(a->t, depth+1);}
+    if (!a->e) {printarr(a->n, depth);}
+}
+void println(Atom* a) {DARKYELLOW; puts("┏ "); print(a, 0); putchar('\n');}
+
 int main() {
 // linux only
     FILE* FP = fopen("challenge", "r");
@@ -529,14 +572,28 @@ int main() {
     while (!feof(FP)) {*prog++ = fgetc(FP);}
     *--prog = 0;
     fclose(FP);
-
     P = ref(new());
     P->e = true;
-    // P = token(P, "\"\\\"hi\\\"\"");
     push(P, newstr(program));
     P = tokens(P);
     P = pull(P);
-
     println(P);
+
+    // char buff[0x100];
+    // for (int i = 0; i < 0x100; i++) {buff[i] = 0;}
+    // P = ref(new());
+    // P->e = true;
+    
+    // while (buff[0] != '\n') {
+    //     push(P, newstr(buff));
+    //     P = tokens(P);
+    //     P = pull(P);
+    //     // puts("\033[1;0H");
+    //     println(P);
+
+    //     puts("-> ");
+    //     fgets(buff, 0x100, stdin);
+    // }
+
     del(P);
 }
