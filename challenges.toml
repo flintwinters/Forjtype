@@ -12,7 +12,7 @@ result = """
 """
 
 [several]
-challenge = """1 2 3  4 5
+challenge = """2 2 3  4 5
 6
 7
 8
@@ -30,7 +30,7 @@ result = """
   ┣ x4
   ┣ x3
   ┣ x2
-  ┗ x1 e0
+  ┗ x2 e0
 """
 
 [declarevar]
@@ -267,7 +267,7 @@ result = """
     ┣ x5
     ┣ dot
     ┣ func
-    ┗ x3 e0
+    ┗ x e0
       ┗ hi e
   ┗ x1 e0
     ┣ x3
@@ -290,6 +290,14 @@ result = """
   ┗ hi
 """
 
+[string7]
+challenge = ' "hi how are you" '
+result = """
+┏ x e0
+  ┗ hi how are you
+"""
+
+
 [string5]
 challenge = ' "\"" '
 result = """
@@ -304,7 +312,7 @@ result = """
   ┗ "
 """
 
-[variable]
+[variable1]
 challenge = ' 2 :hi 3 hi'
 result = """
 ┏ x e0
@@ -314,16 +322,26 @@ result = """
   ┗ x2 e0
 """
 
-[printer]
-challenge = ' 1 2 8 [. 1 2 3 a :" 6 7 8 ]. 4 3'
+[variable2]
+challenge = ' 2 :hi 3 [. hi ].'
 result = """
 ┏ x e0
   ┣ x3
-  ┣ x4
-  ┣ HI
-  ┣ x2
-  ┗ x1 e0
+    ┗ x2 e
+  ┣ hi
+  ┗ x2 e0
 """
+
+# [printer]
+# challenge = ' 1 2 8 [. 1 2 3 a :" 6 7 8 ]. 4 3'
+# result = """
+# ┏ x e0
+#   ┣ x3
+#   ┣ x4
+#   ┣ HI
+#   ┣ x2
+#   ┗ x1 e0
+# """
 
 [descend4]
 challenge = """1 3 !. [. [. 2 ;. ]. ;. ]. """

@@ -63,3 +63,15 @@ Vect* condresize(Vect* v, int addlen) {
     if (v->len > v->maxlen) {v = growtofit(v);}
     return v;
 }
+// Push raw `dat` to v
+// `size` is in bytes
+Vect* rawpushv(Vect* v, void* dat, Word size) {
+    v = condresize(v, size);
+    cpymem((char*) v->v+v->len-size, dat, size);
+    return v;
+}
+Vect* vectpushc(Vect* v, char c) {
+    v = condresize(v, 1);
+    v->v[v->len-1] = c;
+    return v;
+}

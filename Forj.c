@@ -160,8 +160,10 @@ Atom* dot(Atom* a, Atom* p) {
 Atom* get(Atom* a, int i) {
     if (!a) {return 0;}
     if (i == 0) {return a;}
-    if (i >= 0) {return get(a->n, i-1);}
-    if (!a->e) {return get(a->n, -1);}
+    if (!a->e) {
+        if (i >= 0) {return get(a->n, i-1);}
+        return get(a->n, -1);
+    }
     return a;
 }
 // Open the top atom.
@@ -268,7 +270,7 @@ Atom* runfunc(Atom* p, Func f) {
 // a variable from the second, interior layer.
 Atom* varscan(Atom* a, Atom* p, Atom* s) {
     Atom* v = 0;
-    while (a && !a->e) {
+    while (a) {
         if (isstr(a) &&
             equstr(getstr(a)->t->w.v->v, s->t->w.v->v)
             ) {
@@ -283,7 +285,7 @@ Atom* varscan(Atom* a, Atom* p, Atom* s) {
     del(s);
     return v;
 }
-// 4 possible cases:
+// 3 possible cases:
 // 1. implicit scan with variable name (varscan)
 // `val :name name`
 // Case: run directly when a token can't be found.
@@ -312,7 +314,7 @@ Atom* scan(Atom* a, Atom* p) {
     return p;
 }
 // Returns the length of the char*
-int charplen(char* c) {
+int chlen(char* c) {
     int n = 0;
     while (*c++) {n++;}
     return n;
@@ -321,29 +323,38 @@ int charplen(char* c) {
 Atom* pushvect(Atom* a, Atom* p) {
     int maxlen = p->t->w.w;
     pull(p);
-    Vect* v = valloclen(maxlen);
+    Vect* v = valloclen((maxlen) ? maxlen : 1);
     a = pushnew(new(), 0);
     a->t->f = vect;
     a->t->w.v = v;
     a->w.w = v->len = maxlen;
     return push(p, a);
 }
-// Creates a raw string vector
-Atom* newrawstr(Atom* s, char* c, int len) {
+Atom* allocstrdata(Atom* s, int len) {
     pushw(s, len);
-    pushvect(s, s);
-    cpymem(s->t->t->w.v->v, c, len);
-    return s;
+    return pushvect(s, s);
 }
-// Creates a string object
-Atom* newstrlen(char* c, int len) {
+Atom* newstr() {
     Atom* s = new();
-    newrawstr(s, c, len);
+    allocstrdata(s, 0);
     pushfunc(s, scan);
     token(s, "..");
     return s;
 }
-Atom* newstr(char* c) {return newstrlen(c, charplen(c)+1);}
+void setstr(Atom* s, char* c, int len) {
+    getstr(s)->t->w.v->len = 0;
+    rawpushv(getstr(s)->t->w.v, c, len);
+}
+// Creates a string object
+Atom* newstrlen(char* c, int len) {
+    Atom* s = new();
+    allocstrdata(s, len);
+    setstr(s, c, len);
+    pushfunc(s, scan);
+    token(s, "..");
+    return s;
+}
+Atom* pushstr(Atom* p, char* c) {return push(p, newstrlen(c, chlen(c)+1));}
 
 // Consumes the numeric string and outputs a literal
 Atom* strtoint(Atom* a, Atom* p) {
@@ -373,28 +384,15 @@ Atom* strtoint(Atom* a, Atom* p) {
 // Returns the length of the char*, accounting for
 // any backslashes
 // - Both this and charptostr need some work. -
-int parsestrlen(Atom* p, char* c) {
+Atom* charptostr(Atom* p, char* c) {
     int i, j;
-    i = j = 0;
-    while (1) {
+    Atom* s = newstr();
+    Atom* v = getstr(s)->t;
+    for (i = j = 0; c[i+j]; i++) {
         if (c[i+j] == '"') {break;}
         if (c[i+j] == '\\') {j++;}
-        i++;
+        v->w.v = vectpushc(v->w.v, c[i+j]);
     }
-    return i+1;
-}
-Atom* charptostr(Atom* p, char* c, int i) {
-    Atom* s = newstrlen(c, i);
-    Vect* v = getstr(s)->t->w.v;
-    int j = i = 0;
-    while (1) {
-        if (c[i+j] == '"') {break;}
-        if (c[i+j] == '\\') {j++;}
-        // TODO: ADD \n, \t, ETC //
-        v->v[i] = c[i+j];
-        i++;
-    }
-    v->v[i] = 0;
     return push(p, s);
 }
 
@@ -402,7 +400,8 @@ Atom* find(Atom* a, char* c) {
     if (!a || !a->t) {return 0;}
     Atom* p = ref(new());
 
-    newrawstr(p, c, charplen(c)+1);
+    // newrawstr(p, c, chlen(c)+1);
+    push(p, newstrlen(c, chlen(c)+1));
     Atom* s = pulln(p);
     Atom* v = varscan(a->t, p, s);
     if (v) {push(p, v);}
@@ -416,7 +415,7 @@ Atom* find(Atom* a, char* c) {
 // the consumed integer index.
 Atom* splitstrat(Atom* a, Atom* p) {
     Word i = pullw(p);
-    push(p, newstr(getstr(p->t)->t->w.v->v+i));
+    pushstr(p, getstr(p->t)->t->w.v->v+i);
     runfunc(p, swap);
     getstr(p->t)->t->w.v->len = i;
     getstr(p->t)->t->w.v->v[i] = 0;
@@ -444,7 +443,7 @@ Atom* token(Atom* p, char* c) {
     if (i == 1) {return dot(p->t, p);}
     if (i > 1) {return push(p, createmultidot(i-1));}
     if (c[0] == ':') {
-        if (c[1]) {return push(p, newstr(c+1));}
+        if (c[1]) {return pushstr(p, c+1);}
         return pushfunc(p, scan);
     }
     if (c[0] == 'a') {return pushfunc(p, sayhi);}
@@ -453,14 +452,13 @@ Atom* token(Atom* p, char* c) {
     if (c[0] == '!') {return pushfunc(p, top);}
     if (c[0] == '[') {return pushfunc(p, open);}
     if (c[0] == ']') {return pushfunc(p, close);}
-    if (c[0] == '"') {return charptostr(p, c+1, parsestrlen(p, c+1));}
+    if (c[0] == '"') {return charptostr(p, c+1);}
     if (contains(c[0], "0123456789")) {
-        push(p, newstr(c));
-        return runfunc(p, strtoint);
+        return runfunc(pushstr(p, c), strtoint);
     }
-    newrawstr(p, c, charplen(c)+1);
+    push(p, newstrlen(c, chlen(c)+1));
     Atom* s = pulln(p);
-    Atom* v = varscan(p->t, p, s);
+    Atom* v = varscan(p->t, p, getstr(s));
     if (v) {push(p, v);}
     del(s);
     return p;
@@ -475,7 +473,6 @@ Atom* tokens(Atom* p) {
     Vect* str = getstr(p->t)->t->w.v;
     int i = 0;
     while (contains(str->v[i], c)) {i++;}
-    char b = str->v[i-1];
     if (i) {
         pushw(p, i);
         splitstrat(0, p);
@@ -483,7 +480,12 @@ Atom* tokens(Atom* p) {
         str = getstr(p->t)->t->w.v;
     }
     debug(p);
-    if (b == '"') {i = parsestrlen(p, str->v);}
+    char b = str->v[0] == '"';
+    if (b) {
+        i = getstr(charptostr(p, str->v+1)->t)->t->w.v->len;
+        p = runfunc(p, swap);
+        // return tokens(p);
+    }
     else {
         for (i = 0; str->v[i] == '.'; i++);
         if (!i) {
@@ -498,11 +500,7 @@ Atom* tokens(Atom* p) {
     splitstrat(0, p);
     Atom* s = pulln(p);
     Vect* v = getstr(s)->t->w.v;
-    if (b == '"') {
-        charptostr(p, v->v, i);
-        p = runfunc(p, swap);
-    }
-    else {
+    if (!b) {
         pull(p);
         p = token(p, v->v);
         push(p, s->n);
@@ -512,7 +510,7 @@ Atom* tokens(Atom* p) {
 }
 
 void printvect(Vect* v) {
-    for (int i = 0; i < v->len-1; i++) {putchar(v->v[i]);}
+    for (int i = 0; v->v[i] && i < v->len; i++) {putchar(v->v[i]);}
 }
 void print(Atom* a, int depth);
 void printarr(Atom* a, int depth) {
@@ -574,7 +572,7 @@ int main() {
     fclose(FP);
     P = ref(new());
     P->e = true;
-    push(P, newstr(program));
+    pushstr(P, program);
     P = tokens(P);
     P = pull(P);
     println(P);
@@ -588,7 +586,6 @@ int main() {
     //     push(P, newstr(buff));
     //     P = tokens(P);
     //     P = pull(P);
-    //     // puts("\033[1;0H");
     //     println(P);
 
     //     puts("-> ");
