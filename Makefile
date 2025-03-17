@@ -1,5 +1,5 @@
 all:
-	@python3 challenger.py
+	@python3 challenger.py ${CHALL}
 fj: Forj.c Vect.c
 	@gcc Forj.c -g -o fj
 rv: 
@@ -46,4 +46,4 @@ val: fj
 		exit 1; \
 	fi
 gdb: fj
-	gdb --args ./fj challenge
+	gdb -x `pwd`/pyg.py -ex "py connect(rv=False)" --args ./fj challenge

@@ -17,11 +17,15 @@ def replaceall(s, r):
         s = s.replace(k, v)
     return re.sub('\s+', ' ', s)
 
-def runforj(v):
+def runforj(v, val=False):
     with open("challenge", "w") as f:
         f.write(v["challenge"]+" ")
-    if system("./fj > challengeresult"):
-    # if system("make val --no-print-directory > challengeresult"):
+    sy = 0
+    if val:
+        sy = system("make val --no-print-directory > challengeresult")
+    else:
+        sy = system("./fj > challengeresult")
+    if sy:
         with open("challengeresult", "r") as f:
             s = f.read()
             return "execution returned error code"+s
@@ -40,16 +44,28 @@ def main():
     ret = 0
     failed = False
     system("rm fj; make --no-print-directory fj")
-    for k, v in T.items():
-        s = runforj(v)
-        if s:
-            fail(k, s)
-            system('make gdb')
-            failed = True
+    s = ""
+    a = ""
+    if len(argv) > 1:
+        a = argv[1]
+        s = runforj(T[a], val=True)
+    else:
+        for k, v in T.items():
+            s = runforj(v)
+            if s:
+                a = k
+                break
+    if s:
+        fail(a, s)
+        system('make gdb')
+        failed = True
 
     if not failed:
         system("make --no-print-directory val 1> /dev/null")
-        print("\033[92;1mfj all pass "+"\033[0m")
+        if len(argv) > 1 and argv[1]:
+            print(f"\033[92;1mpassed {argv[1]}"+"\033[0m")
+        else:
+            print("\033[92;1mall pass "+"\033[0m")
     if path.exists("challengeresult"):
         system("rm challengeresult")
     return ret
