@@ -132,10 +132,12 @@ Atom* dup(Atom* a, Atom* p) {
 // Double dot (..) will run dot() on the top of stack.
 Atom* dot(Atom* a, Atom* p);
 Atom* array(Atom* a, Atom* p) {
+    // Recursively descend
+    // We execute bottom up so recursion is not tail.
     p = (!ref(a)->e) ? array(a->n, p) : p;
     if (a->f == exec) {
         if (a->t) {dup(a->t, p);}
-        else {p = dot(p->t, p);}
+        else {dot(a, p);}
     }
     else {dup(a, p);}
     del(a);
@@ -147,9 +149,10 @@ Atom* array(Atom* a, Atom* p) {
 //      '..' merely pushes this function.
 Atom* dot(Atom* a, Atom* p) {
     a = p->t;
+    // If 'a' holds a function pointer, run it
     if (a->f == func) {return a->w.f(a, p);}
-    a = ref(a);
-    pull(p);
+    a = pulln(p);
+    // a->f == exec indicates 'a' is a dot ie: ..
     if (a->f == exec) {
         if (a->t) {dup(a->t, p);}
         else {dot(a, p);}
@@ -158,6 +161,7 @@ Atom* dot(Atom* a, Atom* p) {
     del(a);
     return p;
 }
+// Get the ith index next node after a
 Atom* get(Atom* a, int i) {
     if (!a) {return 0;}
     if (i == 0) {return a;}
@@ -300,6 +304,8 @@ Atom* varscan(Atom* a, Atom* p, Atom* s) {
     del(s);
     return v;
 }
+// Rip out the reference of the atom holding the raw vect,
+// discord/free the rest of the enclosing string object.
 Atom* refstr(Atom* p) {
     Atom* a = pulln(p);
     Atom* b = ref(getstr(a));
@@ -356,30 +362,24 @@ Atom* pushvect(Atom* a, Atom* p) {
     a->w.w = v->len = maxlen;
     return push(p, a);
 }
-Atom* allocstrdata(Atom* s, int len) {
-    pushw(s, len);
-    return pushvect(s, s);
-}
+// Builds a new string object
 Atom* newstr() {
     Atom* s = new();
-    allocstrdata(s, 0);
+    pushw(s, 0);
+    pushvect(s, s);
     pushfunc(s, scan);
     token(s, "..");
     return s;
 }
-void setstr(Atom* s, char* c, int len) {
+// Changes the string object to the new string
+Atom* setstr(Atom* s, char* c, int len) {
     getstr(s)->t->w.v->len = 0;
-    rawpushv(getstr(s)->t->w.v, c, len);
-}
-// Creates a string object
-Atom* newstrlen(char* c, int len) {
-    Atom* s = new();
-    allocstrdata(s, len);
-    setstr(s, c, len);
-    pushfunc(s, scan);
-    token(s, "..");
+    getstr(s)->t->w.v = rawpushv(getstr(s)->t->w.v, c, len);
     return s;
 }
+// Creates a string object with a given length
+Atom* newstrlen(char* c, int len) {return setstr(newstr(), c, len);}
+// Creates a string object and pushes it
 Atom* pushstr(Atom* p, char* c) {return push(p, newstrlen(c, chlen(c)+1));}
 
 // Consumes the numeric string and outputs a literal
@@ -426,6 +426,7 @@ Atom* charptostr(Atom* p, char* c) {
     return p;
 }
 
+// Searches for a variable with the name 
 Atom* find(Atom* a, char* c) {
     if (!a || !a->t) {return 0;}
     Atom* p = ref(new());
@@ -475,6 +476,7 @@ Atom* token(Atom* p, char* c) {
         if (c[1]) {return pushstr(p, c+1);}
         return pushfunc(p, scanfunc);
     }
+    // temporary for testing in "printer" test
     if (c[0] == 'a') {return pushfunc(p, sayhi);}
     if (c[0] == ',') {return pushfunc(p, pulls);}
     if (c[0] == ';') {return pushfunc(p, throw);}
@@ -535,6 +537,7 @@ Atom* tokens(Atom* p) {
     return tokens(p);
 }
 
+// print helpers
 void printvect(Vect* v) {
     for (int i = 0; v->v[i] && i < v->len; i++) {putchar(v->v[i]);}
 }
