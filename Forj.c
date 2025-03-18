@@ -94,6 +94,7 @@ Atom* pushe(Atom* p, Atom* t) {
 // Pops an element from the top of p.  If it's the last element,
 // replace it with an e == 2 atom.
 Atom* pull(Atom* p) {
+    // if (p->t->e) {return tset(p, 0);}
     if (p->t->e) {return pushe(p, p->t->n);}
     return tset(p, p->t->n);
 }
@@ -166,6 +167,13 @@ Atom* get(Atom* a, int i) {
     }
     return a;
 }
+int len(Atom* a) {
+    if (!a) {return 0;}
+    if (a->e == 2) {return 0;}
+    int i = 1;
+    while (!a->e) {a = a->n; i++;}
+    return i;
+}
 // Open the top atom.
 //      Points p inside the top atom.
 //      Until ] is called, everything will take place
@@ -184,11 +192,17 @@ Atom* open(Atom* a, Atom* p) {
 Atom* close(Atom* a, Atom* p) {
     pull(p);
     if (p->w.a) {
-        tset(p->w.a, p->t);
+        if (p->t->e == 2) {tset(p->w.a, 0);}
+        else {tset(p->w.a, p->t);}
     }
     Atom* n = p->n;
     del(p);
     return n;
+}
+// Func wrapping of len
+Atom* getlen(Atom* a, Atom* p) {
+    pull(p);
+    return pushw(p, len(p->t->t));
 }
 // Swap the top two elements.
 Atom* swap(Atom* a, Atom* p) {
@@ -236,7 +250,7 @@ char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} retu
 // Returns true if a == b
 bool equstr(char* a, char* b) {
     while (*a == *b && *a) {a++; b++;}
-    if (*a) {return false;}
+    if (*a || *b) {return false;}
     return true;
 }
 Atom* scan(Atom* a, Atom* p);
@@ -244,6 +258,7 @@ Atom* scan(Atom* a, Atom* p);
 // In the future, methods will be written in Forj to 
 // compare to templates, making this more elegant.
 bool isstr(Atom* str) {
+    if (!str->t) {return false;}
     str = get(str->t, 1);
     return str && str->w.f == scan;
 }
@@ -271,7 +286,7 @@ Atom* runfunc(Atom* p, Func f) {
 Atom* varscan(Atom* a, Atom* p, Atom* s) {
     Atom* v = 0;
     while (a) {
-        if (isstr(a) &&
+        if (a->n && isstr(a) &&
             equstr(getstr(a)->t->w.v->v, s->t->w.v->v)
             ) {
             v = new();
@@ -284,6 +299,18 @@ Atom* varscan(Atom* a, Atom* p, Atom* s) {
     }
     del(s);
     return v;
+}
+Atom* refstr(Atom* p) {
+    Atom* a = pulln(p);
+    Atom* b = ref(getstr(a));
+    del(a);
+    return b;
+}
+Atom* scanfunc(Atom* a, Atom* p) {
+    pull(p);
+    Atom* v = varscan(p->t, p, refstr(p));
+    if (v) {push(p, v);}
+    return p;
 }
 // 3 possible cases:
 // 1. implicit scan with variable name (varscan)
@@ -403,14 +430,12 @@ Atom* find(Atom* a, char* c) {
     if (!a || !a->t) {return 0;}
     Atom* p = ref(new());
 
-    // newrawstr(p, c, chlen(c)+1);
+    pushnew(p, a->t);
     push(p, newstrlen(c, chlen(c)+1));
-    Atom* s = pulln(p);
-    Atom* v = varscan(a->t, p, s);
+    Atom* v = varscan(a->t, p, refstr(p));
     if (v) {push(p, v);}
-    s = pulln(p);
+    Atom* s = pulln(p);
     del(p);
-
     return s;
 }
 
@@ -446,8 +471,9 @@ Atom* token(Atom* p, char* c) {
     if (i == 1) {return dot(p->t, p);}
     if (i > 1) {return push(p, createmultidot(i-1));}
     if (c[0] == ':') {
+        if (equstr(c, ":length")) {return pushfunc(p, getlen);}
         if (c[1]) {return pushstr(p, c+1);}
-        return pushfunc(p, scan);
+        return pushfunc(p, scanfunc);
     }
     if (c[0] == 'a') {return pushfunc(p, sayhi);}
     if (c[0] == ',') {return pushfunc(p, pulls);}
@@ -460,11 +486,7 @@ Atom* token(Atom* p, char* c) {
         return runfunc(pushstr(p, c), strtoint);
     }
     push(p, newstrlen(c, chlen(c)+1));
-    Atom* s = pulln(p);
-    Atom* st = ref(getstr(s));
-    del(s);
-    Atom* v = varscan(p->t, p, st);
-    if (v) {push(p, v);}
+    runfunc(p, scanfunc);
     return p;
 }
 void debug(Atom* p) {

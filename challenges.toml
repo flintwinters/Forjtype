@@ -122,7 +122,6 @@ challenge = """1 3 [. ]."""
 result = """
 ┏ x e0
   ┣ x3
-    ┗  e
   ┗ x1 e0
 """
 
@@ -242,10 +241,8 @@ result = """
   ┣ x
     ┣ x2
     ┣ x3x2
-      ┗  e
     ┗ x1 e0
   ┣ x3x2
-    ┗  e
   ┗ x1 e0
 """
 
@@ -349,16 +346,16 @@ result = """
   ┗ x2 e0
 """
 
-# [printer]
-# challenge = ' 1 2 8 [. 1 2 3 a :" 6 7 8 ]. 4 3'
-# result = """
-# ┏ x e0
-#   ┣ x3
-#   ┣ x4
-#   ┣ HI
-#   ┣ x2
-#   ┗ x1 e0
-# """
+[printer]
+challenge = ' 1 2 8 [. 1 2 3 a :" 6 7 8 ]. 4 3'
+result = """
+┏ x e0
+  ┣ x3
+  ┣ x4
+  ┣ HI
+  ┣ x2
+  ┗ x1 e0
+"""
 
 # use after free when printing
 # problem stems from dangling ->n pointers on 
@@ -370,10 +367,8 @@ result = """
   ┣ x2
   ┣ x
     ┣ x3x2
-      ┗  e
     ┗ x1 e0
   ┣ x3x2
-    ┗  e
   ┗ x1 e0
 """
 
@@ -406,3 +401,42 @@ result = """
   ┣ x2
   ┗ x1 e0
 """
+
+[scanner]
+challenge = """0 2 :hello :hello : ."""
+result = """
+┏ x e0
+  ┣ x2
+  ┣ hello
+  ┣ x2
+  ┗ x e0
+"""
+
+[length]
+challenge = """0 2 :length . 0 [. 1 2 3 ]. :length ."""
+result = """
+┏ x e0
+  ┣ x3
+  ┣ x
+    ┣ x3
+    ┣ x2
+    ┗ x1 e
+  ┣ x
+  ┣ x2
+  ┗ x e0
+"""
+
+[removal]
+challenge = """0 2 3 [. 1 ,. ]. 5 :hello 4 [. 1 2 ,. hello ]. """
+result = """
+┏ x e0
+  ┣ x4
+    ┣ x5
+    ┗ x1 e
+  ┣ hello
+  ┣ x5
+  ┣ x3
+  ┣ x2
+  ┗ x e0
+"""
+

@@ -53,10 +53,12 @@ def main():
         for k, v in T.items():
             s = runforj(v)
             if s:
-                a = k
-                break
+                fail(k, s)
+                failed = True
+                # a = k
+                # break
     if s:
-        fail(a, s)
+        # fail(a, s)
         system('make gdb')
         failed = True
 
