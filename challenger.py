@@ -43,22 +43,19 @@ def runforj(v, val=False):
 def main():
     ret = 0
     failed = False
-    system("rm fj; make --no-print-directory fj")
+    if path.exists("fj"):
+        system("rm fj")
+    system("make --no-print-directory fj")
     s = ""
-    a = ""
     if len(argv) > 1:
-        a = argv[1]
-        s = runforj(T[a], val=True)
+        s = runforj(T[argv[1]], val=True)
     else:
         for k, v in T.items():
             s = runforj(v)
             if s:
                 fail(k, s)
                 failed = True
-                # a = k
-                # break
     if s:
-        # fail(a, s)
         system('make gdb')
         failed = True
 
