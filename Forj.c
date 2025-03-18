@@ -321,8 +321,7 @@ int chlen(char* c) {
 }
 // Pushes a vector, consumes length from stack
 Atom* pushvect(Atom* a, Atom* p) {
-    int maxlen = p->t->w.w;
-    pull(p);
+    int maxlen = pullw(p);
     Vect* v = valloclen((maxlen) ? maxlen : 1);
     a = pushnew(new(), 0);
     a->t->f = vect;
@@ -387,13 +386,17 @@ Atom* strtoint(Atom* a, Atom* p) {
 Atom* charptostr(Atom* p, char* c) {
     int i, j;
     Atom* s = newstr();
-    Atom* v = getstr(s)->t;
+    Vect* v = getstr(s)->t->w.v;
     for (i = j = 0; c[i+j]; i++) {
         if (c[i+j] == '"') {break;}
         if (c[i+j] == '\\') {j++;}
-        v->w.v = vectpushc(v->w.v, c[i+j]);
+        v = vectpushc(v, c[i+j]);
     }
-    return push(p, s);
+    v = vectpushc(v, 0);
+    getstr(s)->t->w.v = v;
+    push(p, s);
+    pushw(p, i+j+2);
+    return p;
 }
 
 Atom* find(Atom* a, char* c) {
@@ -452,15 +455,16 @@ Atom* token(Atom* p, char* c) {
     if (c[0] == '!') {return pushfunc(p, top);}
     if (c[0] == '[') {return pushfunc(p, open);}
     if (c[0] == ']') {return pushfunc(p, close);}
-    if (c[0] == '"') {return charptostr(p, c+1);}
+    if (c[0] == '"') {return pull(charptostr(p, c+1));}
     if (contains(c[0], "0123456789")) {
         return runfunc(pushstr(p, c), strtoint);
     }
     push(p, newstrlen(c, chlen(c)+1));
     Atom* s = pulln(p);
-    Atom* v = varscan(p->t, p, getstr(s));
-    if (v) {push(p, v);}
+    Atom* st = ref(getstr(s));
     del(s);
+    Atom* v = varscan(p->t, p, st);
+    if (v) {push(p, v);}
     return p;
 }
 void debug(Atom* p) {
@@ -482,9 +486,9 @@ Atom* tokens(Atom* p) {
     debug(p);
     char b = str->v[0] == '"';
     if (b) {
-        i = getstr(charptostr(p, str->v+1)->t)->t->w.v->len;
+        charptostr(p, str->v+1);
+        i = pullw(p);
         p = runfunc(p, swap);
-        // return tokens(p);
     }
     else {
         for (i = 0; str->v[i] == '.'; i++);

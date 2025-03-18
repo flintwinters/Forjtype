@@ -44,14 +44,13 @@ struct Vect* resize(struct Vect* v, int newmaxlen) {
     }
     struct Vect* newv = valloclen(newmaxlen);
     newv->len = v->len;
-    cpymem(newv->v, v->v, v->len);
+    cpymem(newv->v, v->v, v->maxlen);
     freevect(v);
     return newv;
 }
 
 Vect* growtofit(Vect* v) {
     Word newlen = 1;
-    if (!v->maxlen) {newlen = v->maxlen;}
     while (newlen < v->len) {
         newlen = newlen << 1;
     }
