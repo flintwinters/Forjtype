@@ -413,7 +413,7 @@ result = """
 """
 
 [length]
-challenge = """0 2 :length . 0 [. 1 2 3 ]. :length ."""
+challenge = """0 2 length . 0 [. 1 2 3 ]. length ."""
 result = """
 ┏ x e0
   ┣ x3
@@ -437,6 +437,27 @@ result = """
   ┣ x5
   ┣ x3
   ┣ x2
+  ┗ x e0
+"""
+
+[twelve]
+challenge = "12"
+result = """
+┏ x e0
+  ┗ xc e0
+"""
+
+[exec]
+challenge = """0 1 2 3 0 [. "12" tokens . 1 ]. 7"""
+result = """
+┏ x e0
+  ┣ x7
+  ┣ x
+    ┣ x1
+    ┗ xc e
+  ┣ x3
+  ┣ x2
+  ┣ x1
   ┗ x e0
 """
 

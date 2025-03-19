@@ -124,13 +124,13 @@ Atom* dup(Atom* a, Atom* p) {
     p->t->w = a->w;
     return p;
 }
+Atom* dot(Atom* a, Atom* p);
 // Executing behavior for a list.
 // [ a b c ] .
 // ^ From left to right, (bottom to top of stack),
 // dup the element onto p.  If it's a multidot (ie: ...),
 // Execute it, reducing by one.
 // Double dot (..) will run dot() on the top of stack.
-Atom* dot(Atom* a, Atom* p);
 Atom* array(Atom* a, Atom* p) {
     // Recursively descend
     // We execute bottom up so recursion is not tail.
@@ -443,6 +443,7 @@ Atom* find(Atom* a, char* c) {
 // Breaks a string into two separate strings, at
 // the consumed integer index.
 Atom* splitstrat(Atom* a, Atom* p) {
+    pull(p);
     Word i = pullw(p);
     pushstr(p, getstr(p->t)->t->w.v->v+i);
     runfunc(p, swap);
@@ -465,6 +466,13 @@ Atom* sayhi(Atom* a, Atom* p) {
     puts("HI");
     return p;
 }
+Atom* tokens(Atom* p);
+Atom* tokenizer(Atom* a, Atom* p) {
+    pull(p);
+    p = tokens(p);
+    pull(p);
+    return p;
+}
 // Parses one token over the program p
 Atom* token(Atom* p, char* c) {
     int i = 0;
@@ -472,7 +480,6 @@ Atom* token(Atom* p, char* c) {
     if (i == 1) {return dot(p->t, p);}
     if (i > 1) {return push(p, createmultidot(i-1));}
     if (c[0] == ':') {
-        if (equstr(c, ":length")) {return pushfunc(p, getlen);}
         if (c[1]) {return pushstr(p, c+1);}
         return pushfunc(p, scanfunc);
     }
@@ -487,6 +494,8 @@ Atom* token(Atom* p, char* c) {
     if (contains(c[0], "0123456789")) {
         return runfunc(pushstr(p, c), strtoint);
     }
+    if (equstr(c, "tokens")) {return pushfunc(p, tokenizer);}
+    if (equstr(c, "length")) {return pushfunc(p, getlen);}
     push(p, newstrlen(c, chlen(c)+1));
     runfunc(p, scanfunc);
     return p;
@@ -494,16 +503,26 @@ Atom* token(Atom* p, char* c) {
 void debug(Atom* p) {
     return;
 }
+Atom* addtok(Atom* p) {
+    Atom* s = pulln(p);
+    Vect* v = getstr(s)->t->w.v;
+    pull(p);
+    p = token(p, v->v);
+    push(p, s->n);
+    del(s);
+    return p;
+}
 // Parses repeated tokens.
 Atom* tokens(Atom* p) {
     // Splitting on these 
-    char* c = " \n\t\b\r";
+    char* c = " \n\t\b\r\0";
     Vect* str = getstr(p->t)->t->w.v;
+    if (!str->len) {return p;}
     int i = 0;
     while (contains(str->v[i], c)) {i++;}
     if (i) {
         pushw(p, i);
-        splitstrat(0, p);
+        runfunc(p, splitstrat);
         pull(p);
         str = getstr(p->t)->t->w.v;
     }
@@ -518,22 +537,20 @@ Atom* tokens(Atom* p) {
         for (i = 0; str->v[i] == '.'; i++);
         if (!i) {
             while (1) {
-                if (i == str->len) {return p;}
+                if (i == str->len) {
+                    pushw(p, i-1);
+                    runfunc(p, splitstrat);
+                    return addtok(p);
+                }
                 if (str->v[i] == '.' || contains(str->v[i], c)) {break;}
                 i++;
             }
         }
     }
     pushw(p, i);
-    splitstrat(0, p);
-    Atom* s = pulln(p);
-    Vect* v = getstr(s)->t->w.v;
-    if (!b) {
-        pull(p);
-        p = token(p, v->v);
-        push(p, s->n);
-    }
-    del(s);
+    runfunc(p, splitstrat);
+    if (!b) {p = addtok(p);}
+    else {pull(p);}
     return tokens(p);
 }
 

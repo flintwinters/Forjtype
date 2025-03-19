@@ -19,7 +19,7 @@ def replaceall(s, r):
 
 def runforj(v, val=False):
     with open("challenge", "w") as f:
-        f.write(v["challenge"]+" ")
+        f.write(v["challenge"])
     sy = 0
     if val:
         sy = system("make val --no-print-directory > challengeresult")
@@ -55,11 +55,9 @@ def main():
             if s:
                 fail(k, s)
                 failed = True
-    if s:
+    if failed:
         system('make gdb')
-        failed = True
-
-    if not failed:
+    else:
         system("make --no-print-directory val 1> /dev/null")
         if len(argv) > 1 and argv[1]:
             print(f"\033[92;1mpassed {argv[1]}"+"\033[0m")
