@@ -65,7 +65,7 @@ Atom* push(Atom* p, Atom* a) {
     if (p->t) {
         if (p->t->e == 2) {
             if (!a->e) {del(a->n);}
-            if (p->n) {a->n = p->n->t;}
+            if (p->t) {a->n = p->t->n;}
             a->e = true;
             return tset(p, a);
         }
@@ -228,7 +228,13 @@ Atom* top(Atom* a, Atom* p) {
     return pushnew(p, p->t);
 }
 // Wrap pull in 'Func' type compatible function
-Atom* pulls(Atom* a, Atom* p) {pull(p); return pull(p);}
+Atom* consume(Atom* a, Atom* p) {
+    pull(p);
+    if (p->n) {
+        dup(get(p->w.a, 1), p);
+    }
+    return p;
+}
 Atom* throw(Atom* a, Atom* p) {
     pull(p);
     if (p->n) {
@@ -253,7 +259,7 @@ Atom* token(Atom* p, char* c);
 char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} return c;}
 // Returns true if a == b
 bool equstr(char* a, char* b) {
-    while (*a == *b && *a) {a++; b++;}
+    while (*a == *b && *a && *b) {a++; b++;}
     if (*a || *b) {return false;}
     return true;
 }
@@ -473,6 +479,42 @@ Atom* tokenizer(Atom* a, Atom* p) {
     pull(p);
     return p;
 }
+bool tequ(Atom* a, Atom* b) {
+    if (a == b) {return true;}
+    if (a->f != b->f) {return false;}
+    if (!a->t != !b->t || !a->e != !b->e) {return false;}
+    if (a->t && !tequ(a->t, b->t)) {return false;}
+    if (!a->e && !tequ(a->n, b->n)) {return false;}
+    return true;
+}
+Atom* choice(Atom* a, Atom* p) {
+    pull(p);
+    Word b = pullw(p);
+    if (b) {p = runfunc(p, swap);}
+    return pull(p);
+}
+Atom* typeequ(Atom* a, Atom* p) {
+    pull(p);
+    Atom* b = pulln(p);
+    a = pulln(p);
+    pushw(p, tequ(a->t, b->t));
+    del(a); del(b);
+    return p;
+}
+Atom* zip(Atom* a, Atom* p) {
+    pull(p);
+    Atom* x = pulln(p);
+    Atom* y = pulln(p);
+    
+}
+Atom* multiplier(Atom* a, Atom* p) {
+    pull(p);
+    Word n = pullw(p);
+    a = pulln(p);
+    while (n-- > 0) {dup(a, p);}
+    del(a);
+    return p;
+}
 // Parses one token over the program p
 Atom* token(Atom* p, char* c) {
     int i = 0;
@@ -483,17 +525,21 @@ Atom* token(Atom* p, char* c) {
         if (c[1]) {return pushstr(p, c+1);}
         return pushfunc(p, scanfunc);
     }
-    // temporary for testing in "printer" test
+    if (contains(c[0], "0123456789")) {return runfunc(pushstr(p, c), strtoint);}
+    // temporary for testing in the "printer" test
     if (c[0] == 'a') {return pushfunc(p, sayhi);}
-    if (c[0] == ',') {return pushfunc(p, pulls);}
-    if (c[0] == ';') {return pushfunc(p, throw);}
-    if (c[0] == '!') {return pushfunc(p, top);}
-    if (c[0] == '[') {return pushfunc(p, open);}
-    if (c[0] == ']') {return pushfunc(p, close);}
-    if (c[0] == '"') {return pull(charptostr(p, c+1));}
-    if (contains(c[0], "0123456789")) {
-        return runfunc(pushstr(p, c), strtoint);
-    }
+
+    if (equstr(c, ",")) {return pushfunc(p, multiplier);}
+    if (equstr(c, "!")) {return pushfunc(p, top);}
+    if (equstr(c, "[")) {return pushfunc(p, open);}
+    if (equstr(c, "]")) {return pushfunc(p, close);}
+    if (equstr(c, "\"")) {return pull(charptostr(p, c+1));}
+    if (equstr(c, "->")) {return pushfunc(p, consume);}
+    if (equstr(c, "<-")) {return pushfunc(p, throw);}
+    if (equstr(c, "?"))  {return pushfunc(p, choice);}
+    if (equstr(c, "typer")) {return pushfunc(p, typeequ);}
+    if (equstr(c, "zip")) {return pushfunc(p, zip);}
+    if (equstr(c, "swap")) {return pushfunc(p, swap);}
     if (equstr(c, "tokens")) {return pushfunc(p, tokenizer);}
     if (equstr(c, "length")) {return pushfunc(p, getlen);}
     push(p, newstrlen(c, chlen(c)+1));
@@ -515,9 +561,9 @@ Atom* addtok(Atom* p) {
 // Parses repeated tokens.
 Atom* tokens(Atom* p) {
     // Splitting on these 
-    char* c = " \n\t\b\r\0";
+    char* c = " \n\t\b\r";
     Vect* str = getstr(p->t)->t->w.v;
-    if (!str->len) {return p;}
+    if (str->len <= 1) {return p;}
     int i = 0;
     while (contains(str->v[i], c)) {i++;}
     if (i) {
@@ -619,8 +665,7 @@ int main() {
     P = ref(new());
     P->e = true;
     pushstr(P, program);
-    P = tokens(P);
-    P = pull(P);
+    P = runfunc(P, tokenizer);
     println(P);
 
     // char buff[0x100];
@@ -629,9 +674,8 @@ int main() {
     // P->e = true;
     
     // while (buff[0] != '\n') {
-    //     push(P, newstr(buff));
-    //     P = tokens(P);
-    //     P = pull(P);
+    //     push(P, newstrlen(buff, chlen(buff)));
+    //     P = runfunc(P, tokenizer);
     //     println(P);
 
     //     puts("-> ");

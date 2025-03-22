@@ -49,9 +49,12 @@ def main():
     s = ""
     if len(argv) > 1:
         s = runforj(T[argv[1]], val=True)
+        if s:
+            fail(argv[1], s)
+            failed = True
     else:
         for k, v in T.items():
-            s = runforj(v)
+            s = runforj(v, val=True)
             if s:
                 fail(k, s)
                 failed = True

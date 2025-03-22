@@ -46,4 +46,4 @@ val: fj
 		exit 1; \
 	fi
 gdb: fj
-	gdb -x `pwd`/pyg.py -ex "py connect(rv=False)" --args ./fj challenge
+	gdb -q -x `pwd`/pyg.py -ex "py connect(rv=False)" --args ./fj challenge
