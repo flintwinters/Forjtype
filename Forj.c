@@ -36,11 +36,15 @@ Atom* get(Atom* a, int i);
 //  - Vects don't have refcounts, so must be referenced by
 //    exactly one atom at all times.
 Atom* del(Atom* a) {
-    if (!a) {return a;}
+    if (!a) {return 0;}
     if (--a->r) {return a;}
     if (a->f == vect) {freevect(a->w.v);}
     if (a->e == false) {del(a->n);}
-    del(a->t);
+    if (del(a->t)) {
+        Atom* n = a->t;
+        while (!n->e) {n = n->n;}
+        if (n->n == a) {n->n = 0;}
+    }
     reclaim(a, sizeof(struct Atom));
     return 0;
 }
@@ -52,9 +56,9 @@ Atom* ref(Atom* a) {if (a) {a->r++;} return a;}
 Atom* nset(Atom* a, Atom* n) {
     ref(n);
     if (!a->e) {del(a->n);}
-    a->e = false;
-    if (!n) {a->e = true;}
-    a->n = n; return a;
+    a->e = !n;
+    a->n = n;
+    return a;
 }
 // Set a's t value.  Adjust references accordingly.
 Atom* tset(Atom* a, Atom* t) {ref(t); del(a->t); a->t = t; return a;}
@@ -157,7 +161,8 @@ Atom* dot(Atom* a, Atom* p) {
         if (a->t) {dup(a->t, p);}
         else {dot(a, p);}
     }
-    else {p = array(a->t, p);}
+    else if (a->t) {p = array(a->t, p);}
+    else {dup(a, p);}
     del(a);
     return p;
 }
@@ -221,11 +226,35 @@ Atom* swap(Atom* a, Atom* p) {
     b->n->e = e;
     return p;
 }
-// ! inbuilt function
-// creates a reference to the top of the stack.
-Atom* top(Atom* a, Atom* p) {
+// <~ inbuilt function
+// If the top element has no type, set its type to the next
+// Element, otherwise move the type that already exists to its next element
+Atom* next(Atom* a, Atom* p) {
     pull(p);
-    return pushnew(p, p->t);
+    if (p->t->t) {tset(p->t, p->t->t->n);}
+    else {tset(p->t, p->t->n);}
+    return p;
+}
+// ~> inbuilt
+Atom* enter(Atom* a, Atom* p) {
+    pull(p);
+    if (p->t->t) {tset(p->t, p->t->t->t);}
+    else {tset(p->t, p->t->n->t);}
+    return p;
+}
+// <| inbuilt
+Atom* crawl(Atom* a, Atom* p) {
+    pull(p);
+    if (p->t->n) {nset(p->t, p->t->n->n);}
+    return p;
+}
+// |> inbuilt
+Atom* climb(Atom* a, Atom* p) {
+    pull(p);
+    if (p->t->n) {
+        nset(p->t, p->t->n->t);
+    }
+    return p;
 }
 // Wrap pull in 'Func' type compatible function
 Atom* consume(Atom* a, Atom* p) {
@@ -257,6 +286,7 @@ Atom* throw(Atom* a, Atom* p) {
 Atom* token(Atom* p, char* c);
 // Returns c if c is in s, else 0
 char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} return c;}
+char iswhitespace(char c) {return contains(c, " \n\t\b\r");}
 // Returns true if a == b
 bool equstr(char* a, char* b) {
     while (*a == *b && *a && *b) {a++; b++;}
@@ -452,7 +482,7 @@ Atom* splitstrat(Atom* a, Atom* p) {
     pull(p);
     Word i = pullw(p);
     pushstr(p, getstr(p->t)->t->w.v->v+i);
-    runfunc(p, swap);
+    p = runfunc(p, swap);
     getstr(p->t)->t->w.v->len = i;
     getstr(p->t)->t->w.v->v[i] = 0;
     return p;
@@ -473,11 +503,12 @@ Atom* sayhi(Atom* a, Atom* p) {
     return p;
 }
 Atom* tokens(Atom* p);
+Atom* parseone(Atom* p);
 Atom* tokenizer(Atom* a, Atom* p) {
     pull(p);
-    p = tokens(p);
-    pull(p);
-    return p;
+    return parseone(p);
+    // pull(p);
+    // return p;
 }
 bool tequ(Atom* a, Atom* b) {
     if (a == b) {return true;}
@@ -515,6 +546,20 @@ Atom* multiplier(Atom* a, Atom* p) {
     del(a);
     return p;
 }
+Atom* mult(Atom* a, Atom* p) {
+    pull(p);
+    Word x = pullw(p);
+    Word y = pullw(p);
+    pushw(p, y*x);
+    return p;
+}
+Atom* sub(Atom* a, Atom* p) {
+    pull(p);
+    Word x = pullw(p);
+    Word y = pullw(p);
+    pushw(p, y-x);
+    return p;
+}
 // Parses one token over the program p
 Atom* token(Atom* p, char* c) {
     int i = 0;
@@ -530,26 +575,33 @@ Atom* token(Atom* p, char* c) {
     if (c[0] == 'a') {return pushfunc(p, sayhi);}
 
     if (equstr(c, ",")) {return pushfunc(p, multiplier);}
-    if (equstr(c, "!")) {return pushfunc(p, top);}
     if (equstr(c, "[")) {return pushfunc(p, open);}
     if (equstr(c, "]")) {return pushfunc(p, close);}
     if (equstr(c, "\"")) {return pull(charptostr(p, c+1));}
+    if (equstr(c, "~>")) {return pushfunc(p, enter);}
+    if (equstr(c, "<~")) {return pushfunc(p, next);}
+    if (equstr(c, "|>")) {return pushfunc(p, climb);}
+    if (equstr(c, "<|")) {return pushfunc(p, crawl);}
     if (equstr(c, "->")) {return pushfunc(p, consume);}
     if (equstr(c, "<-")) {return pushfunc(p, throw);}
     if (equstr(c, "?"))  {return pushfunc(p, choice);}
-    if (equstr(c, "typer")) {return pushfunc(p, typeequ);}
+    if (equstr(c, "#")) {return pushfunc(p, typeequ);}
+    if (equstr(c, "-")) {return pushfunc(p, sub);}
+    if (equstr(c, "*")) {return pushfunc(p, mult);}
     if (equstr(c, "zip")) {return pushfunc(p, zip);}
     if (equstr(c, "swap")) {return pushfunc(p, swap);}
-    if (equstr(c, "tokens")) {return pushfunc(p, tokenizer);}
+    if (equstr(c, "token")) {return pushfunc(p, tokenizer);}
     if (equstr(c, "length")) {return pushfunc(p, getlen);}
     push(p, newstrlen(c, chlen(c)+1));
-    runfunc(p, scanfunc);
+    p = runfunc(p, scanfunc);
     return p;
 }
 void debug(Atom* p) {
     return;
 }
-Atom* addtok(Atom* p) {
+Atom* addtok(int i, Atom* p) {
+    pushw(p, i);
+    p = runfunc(p, splitstrat);
     Atom* s = pulln(p);
     Vect* v = getstr(s)->t->w.v;
     pull(p);
@@ -558,45 +610,70 @@ Atom* addtok(Atom* p) {
     del(s);
     return p;
 }
+Vect* discardtok(int i, Atom* p) {
+    pushw(p, i);
+    p = runfunc(p, splitstrat);
+    pull(p);
+    return getstr(p->t)->t->w.v;
+}
+bool splittok(Atom* p) {
+    // Splitting on these 
+    Vect* str = getstr(p->t)->t->w.v;
+    int i = 0;
+    while (iswhitespace(str->v[i])) {i++;}
+    if (i) {str = discardtok(i, p);}
+    bool b = str->v[0] == '"';
+    if (b) {charptostr(p, str->v+1);}
+    return b;
+}
 // Parses repeated tokens.
+Atom* parseone(Atom* p) {
+    // Splitting on these 
+    bool b = splittok(p);
+    int i = 0;
+    if (b) {
+        i = pullw(p);
+        p = runfunc(p, swap);
+        discardtok(i, p);
+        return p;
+    }
+    Vect* str = getstr(p->t)->t->w.v;
+    for (i = 0; str->v[i] == '.'; i++);
+    if (i) {return addtok(i, p);}
+    while (!contains(str->v[i], " \n\t\b\r.")) {
+        if (i+1 == str->len) {break;}
+        i++;
+    }
+    return addtok(i, p);
+}
 Atom* tokens(Atom* p) {
     // Splitting on these 
     char* c = " \n\t\b\r";
     Vect* str = getstr(p->t)->t->w.v;
-    if (str->len <= 1) {return p;}
     int i = 0;
     while (contains(str->v[i], c)) {i++;}
     if (i) {
-        pushw(p, i);
-        runfunc(p, splitstrat);
-        pull(p);
+        discardtok(i, p);
         str = getstr(p->t)->t->w.v;
     }
-    debug(p);
     char b = str->v[0] == '"';
     if (b) {
         charptostr(p, str->v+1);
         i = pullw(p);
         p = runfunc(p, swap);
+        discardtok(i, p);
     }
     else {
         for (i = 0; str->v[i] == '.'; i++);
         if (!i) {
             while (1) {
-                if (i == str->len) {
-                    pushw(p, i-1);
-                    runfunc(p, splitstrat);
-                    return addtok(p);
-                }
+                if (i == str->len) {return addtok(i-1, p);}
                 if (str->v[i] == '.' || contains(str->v[i], c)) {break;}
                 i++;
             }
         }
+        p = addtok(i, p);
     }
-    pushw(p, i);
-    runfunc(p, splitstrat);
-    if (!b) {p = addtok(p);}
-    else {pull(p);}
     return tokens(p);
 }
 
@@ -665,7 +742,9 @@ int main() {
     P = ref(new());
     P->e = true;
     pushstr(P, program);
-    P = runfunc(P, tokenizer);
+    // P = runfunc(P, tokenizer);
+    P = tokens(P);
+    pull(P);
     println(P);
 
     // char buff[0x100];
