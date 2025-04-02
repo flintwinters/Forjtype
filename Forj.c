@@ -7,6 +7,25 @@ typedef union data data;
 typedef enum form form;
 typedef Atom* (*Func)(Atom*, Atom*, Atom*);
 
+// A program thread has three components:
+// 1.   "P" - data pointer stack
+//      This stack tracks the working data branch
+//      a new value is pushed to this stack when
+//      entering into an array, using [. for example
+// 2.   "E" - execution stack
+//      This stack is needed for multithreaded debugging.
+//      Future non-debug threads may take advantage of
+//      OS threads for efficiency.
+//      Elements on this stack point to to-be-handled
+//      atoms.  When an array is run, the environment
+//      must get the last element and back out using
+//      breadcrumbs held by this stack.
+// 3.   "R" - optional residual stack
+//      Reversible operations need to add their
+//      residuals to this stack so they can be retrieved
+//      at undo-time.
+typedef Atom Prog;
+
 union data {
     Word w;
     Func f;
@@ -21,7 +40,6 @@ struct Atom {
     short r; // reference counter
     short e; // 'end'.  true means n points to the parent
 };
-Atom* P;
 
 // Creates a new, zero-initialized atom with no references.
 Atom* new() {
@@ -41,8 +59,7 @@ Atom* del(Atom* a) {
     if (a->f == vect) {freevect(a->w.v);}
     if (a->e == false) {del(a->n);}
     if (del(a->t)) {
-        Atom* n = a->t;
-        while (!n->e) {n = n->n;}
+        Atom* n = get(a->t, -1);
         if (n->n == a) {n->n = 0;}
     }
     reclaim(a, sizeof(struct Atom));
@@ -135,17 +152,26 @@ Atom* dot(Atom* a, Atom* p, Atom* r);
 // dup the element onto p.  If it's a multidot (ie: ...),
 // Execute it, reducing by one.
 // Double dot (..) will run dot() on the top of stack.
-Atom* array(Atom* a, Atom* p, Atom* r) {
-    // Recursively descend
-    // We execute bottom up so recursion is not tail.
-    p = (!ref(a)->e) ? array(a->n, p, r) : p;
+Atom* recursearr(Atom* a, Atom* p) {
+    p = (!ref(a)->e) ? recursearr(a->n, p) : p;
     if (a->f == exec) {
         if (a->t) {dup(a->t, p);}
-        else {p = dot(a, p, r);}
+        else {p = dot(a, p, 0);}
     }
     else {dup(a, p);}
     del(a);
     return p;
+}
+Atom* debugarr(Atom* a, Atom* p, Atom* r) {
+    // find(a, "\"");
+}
+Atom* array(Atom* a, Atom* p, Atom* r) {
+    // Recursively descend
+    // We execute bottom up so recursion is not tail.
+    // if we are in debug mode, build the program tree,
+    // else choose the more efficient, C-driven tracker
+    if (!r) {return recursearr(a, p);}
+    return debugarr(a, p, r);
 }
 // Single dot, or activated double dot:
 //      A single dot '.', runs immediately when it is
@@ -739,7 +765,7 @@ int main() {
     while (!feof(FP)) {*prog++ = fgetc(FP);}
     *--prog = 0;
     fclose(FP);
-    P = ref(new());
+    Atom* P = ref(new());
     P->e = true;
     pushstr(P, program);
     // P = runfunc(P, tokenizer);
