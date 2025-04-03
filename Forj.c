@@ -24,6 +24,7 @@ typedef enum form form;
 //      residuals to this stack so they can be retrieved
 //      at undo-time.
 typedef Atom Prog;
+Prog* prog();
 typedef void (*Func)(Atom*, Prog*);
 
 union data {
@@ -156,25 +157,24 @@ Atom* R(Prog* g) {return chscan(g->t, "R");}
 // dup the element onto p.  If it's a multidot (ie: ...),
 // Execute it, reducing by one.
 // Double dot (..) will run dot() on the top of stack.
-void recursearr(Atom* a, Prog* g) {
-    if (!ref(a)->e) {recursearr(a->n, g);}
+void exechandler(Atom* a, Atom* p, Prog* g) {
     if (a->f == exec) {
-        if (a->t) {dup(a->t, P(g)->t);}
-        else {dot(g);}
+        if (!a->t) {dot(g);}
+        else {dup(a->t, p);}
     }
-    else {dup(a, P(g)->t);}
-    del(a);
+    else {dup(a, p);}
 }
-void debugarr(Atom* a, Prog* g) {
-    // find(a, "\"");
+bool run(Atom* e, Prog* g) {
+    if (e->t->e == 2) {return false;}
+    exechandler(e->t->t, P(g)->t, g);
+    pull(e);
+    return true;
 }
 void array(Atom* a, Prog* g) {
-    // Recursively descend
-    // We execute bottom up so recursion is not tail.
-    // if we are in debug mode, build the program tree,
-    // else choose the more efficient, C-driven tracker
-    if (R(g)->t) {debugarr(a, g);}
-    else {recursearr(a, g);}
+    Atom* e = pushnew(E(g), 0)->t;
+    pushnew(e, a);
+    while (!a->e) {pushnew(e, a = a->n);}
+    while (run(e, g));
 }
 // Single dot, or activated double dot:
 //      A single dot '.', runs immediately when it is
@@ -187,12 +187,8 @@ void dot(Prog* g) {
     if (a->f == func) {return a->w.f(a, g);}
     a = pulln(p);
     // a->f == exec indicates 'a' is a dot ie: ..
-    if (a->f == exec) {
-        if (a->t) {dup(a->t, p);}
-        else {dot(g);}
-    }
-    else if (a->t) {array(a->t, g);}
-    else {dup(a, p);}
+    if (a->f != exec && a->t) {array(a->t, g);}
+    else {exechandler(a, P(g)->t, g);}
     del(a);
 }
 void dotter(Atom* a, Prog* g) {dot(g);}
@@ -593,6 +589,11 @@ void printstr(Atom* a, Prog* g) {
     puts(getstr(s)->t->w.v->v);
     del(s);
 }
+void newprog(Atom* a, Prog* g) {
+    Atom* p = P(g)->t;
+    pull(p);
+    push(p, prog());
+}
 Func builtins(char* c) {
     if (equstr(c, ","))      {return multiplier;}
     if (equstr(c, "["))      {return open;}
@@ -608,6 +609,7 @@ Func builtins(char* c) {
     if (equstr(c, "token"))  {return tokenizer;}
     if (equstr(c, "length")) {return getlen;}
     if (equstr(c, "print"))  {return printstr;}
+    if (equstr(c, "program"))  {return newprog;}
     return 0;
 }
 // Parses one token over the program g
@@ -726,7 +728,9 @@ void printprog(Atom* a, Prog* g) {
     Atom* p = P(g)->t;
     pull(p);
     int depth = pullw(p);
-    print(P(p->t)->t, depth);
+    p = P(p->t)->t;
+    if (p) (print(p, depth));
+    else {puts("empty program");}
 }
 Prog* prog() {
     Prog* g = new();
