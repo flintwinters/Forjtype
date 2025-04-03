@@ -147,7 +147,6 @@ Atom* dup(Atom* a, Atom* p) {
 }
 void dot(Prog* g);
 Atom* chscan(Atom* a, char* c);
-Prog* prog();
 Atom* P(Prog* g) {return chscan(g->t, "P");}
 Atom* E(Prog* g) {return chscan(g->t, "E");}
 Atom* R(Prog* g) {return chscan(g->t, "R");}
@@ -442,16 +441,6 @@ Atom* newstrlen(char* c, int len) {return setstr(newstr(), c, len);}
 // Creates a string object and pushes it
 Atom* pushstr(Atom* p, char* c) {return push(p, newstrlen(c, chlen(c)+1));}
 
-Prog* prog() {
-    Prog* g = new();
-    pushnew(g, 0); pushstr(g, "R");
-    pushnew(g, 0); pushstr(g, "E");
-    pushnew(g, 0); pushstr(g, "P");
-    pushnew(g, 0); pushstr(g, "\"");
-    g->e = true;
-    return g;
-}
-
 // Consumes the numeric string and outputs a literal
 void strtoint(Atom* a, Prog* g) {
     Atom* p = P(g)->t;
@@ -725,12 +714,37 @@ void tokens(Prog* g) {
     }
     tokens(g);
 }
+void tokench(Prog* g, char* c) {
+    pushnew(P(g), 0);
+    pushstr(P(g)->t, c);
+    tokens(g);
+    pull(P(g)->t);
+}
+
+void print(Atom* a, int depth);
+void printprog(Atom* a, Prog* g) {
+    Atom* p = P(g)->t;
+    pull(p);
+    int depth = pullw(p);
+    print(P(p->t)->t, depth);
+}
+Prog* prog() {
+    Prog* g = new();
+    pushnew(g, 0); pushstr(g, "R");
+    pushnew(g, 0); pushstr(g, "E");
+    pushnew(g, 0); pushstr(g, "P");
+    Atom* quot = pushnew(g, 0)->t;
+    pushfunc(quot, printprog);
+    push(quot, createmultidot(1));
+    pushstr(g, "\"");
+    g->e = true;
+    return g;
+}
 
 // print helpers
 void printvect(Vect* v) {
     for (int i = 0; v->v[i] && i < v->len; i++) {putchar(v->v[i]);}
 }
-void print(Atom* a, int depth);
 void printarr(Atom* a, int depth) {
     puts("\n");
     DARKYELLOW;
@@ -752,27 +766,29 @@ void print(Atom* a, int depth) {
         tset(P(g), p);
         dot(g);
         del(g);
-        showt = false;
         del(p);
+        showt = false;
     }
     else {
         // printint((Word) a, 8);
         // putchar(' ');
-        if (isstr(a)) {RED; printvect(getstr(a)->t->w.v); showt = false;}
+        if (isstr(a)) {
+            RED; printvect(getstr(a)->t->w.v); showt = false;
+        }
         else {
             if (a->e == 2) {DARKGREEN;}
             else if (a->f == word) {BLACK; printint(a->w.w, 4);}
             else if (a->f == func) {GREEN; puts("func");}
             else if (a->f == exec) {DARKRED; puts("dot");}
-            else if (a->f == vect) {RED; printvect(a->w.v);}
+            else if (a->f == vect) {DARKGREEN; printvect(a->w.v);}
             else if (a->f == atom) {YELLOW;}
             if (a->r != 1) {RED; printint(a->r, 4);}
         }
-    }
-    if (a->e) {
-        DARKGREEN; puts(" e");
-        if (!a->n) {putchar('0');}
-        RESET;
+        if (a->e) {
+            DARKGREEN; puts(" e");
+            if (!a->n) {putchar('0');}
+            RESET;
+        }
     }
     if (showt) {printarr(a->t, depth+1);}
     if (!a->e) {printarr(a->n, depth);}
@@ -792,11 +808,9 @@ int main() {
     fclose(FP);
 
     Atom* G = ref(prog());
-    pushnew(P(G), 0);
-    pushstr(P(G)->t, program);
-    tokens(G);
-    pull(P(G)->t);
-    println(P(G)->t);
+    tokench(G, program);
+    // println(P(G)->t);
+    println(G);
     del(G);
 
     // char buff[0x100];
