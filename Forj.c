@@ -634,6 +634,7 @@ void printprog(Atom* a, Atom* p, Prog* g) {
     int depth = pullw(p);
     if (p->t->w.w) {printint(p->t->w.w, 8); puts(" ");}
     p = P(p->t)->t;
+    YELLOW;
     if (p) {puts("program: "); print(p, depth);}
     else {puts("empty program");}
 }
@@ -838,14 +839,14 @@ void print(Atom* a, int depth) {
         // printint((Word) a, 8);
         // putchar(' ');
         if (isstr(a)) {
-            RED; printvect(getstr(a)->t->w.v); showt = false;
+            DARKGREEN; printvect(getstr(a)->t->w.v); showt = false;
         }
         else {
-            if (a->e == 2) {DARKGREEN;}
+            if (a->e == 2) {}
             else if (a->f == word) {DARKRED; printint(a->w.w, 4);}
             else if (a->f == func) {GREEN; puts("func");}
             else if (a->f == exec) {DARKRED; puts("dot");}
-            else if (a->f == vect) {DARKGREEN; printvect(a->w.v);}
+            else if (a->f == vect) {RED; printvect(a->w.v);}
             else if (a->f == atom) {DARKYELLOW;}
             if (a->r != 1) {RED; puts(" x"); printint(a->r, 4);}
         }
@@ -866,9 +867,10 @@ void print(Atom* a, int depth) {
 }
 void println(Atom* a) {
     if (a->e == 2) {return;}
-    DARKYELLOW;
+    YELLOW;
     if (a->e) {puts("  ╺ ");}
     else {puts("  ┏ ");}
+    DARKYELLOW;
     print(a, 1);
     putchar('\n');
 }
@@ -905,8 +907,7 @@ int main() {
     while (G->t->e != 2) {
         if (g->t->t->w.w == 0 && !run(g->t->t)) {
             PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
-            print(g->t->t, 0);
-            puts("\n");
+            print(g->t->t, 0); puts("\n");
             if (g->t == G->t) {pull(G);}
             else {removeat(G, prev);}
         }
@@ -929,6 +930,10 @@ int main() {
 
     Atom* p = P(interactive);
     while (G->t->e != 2 && buff[0] != '\n') {
+        puts("\e[2J\e[H");
+
+        DARKBLUE; puts("🡪🡪 ");
+        puts("\e[1E");
         pushstr(p->t, buff);
         pushfunc(p->t, tokenizer);
         push(p->t, createmultidot(1));
@@ -937,14 +942,14 @@ int main() {
         while (run(interactive));
         if (p->t->e == 2) {break;}
         println(p->t->t);
-
-        DARKBLUE; puts("🡪 "); BLUE;
+        BLUE;
+        puts("\e[H\e[3C");
         fgets(buff, 0x100, stdin);
+        RESET;
 
         if (g->t->t->w.w == 0 && !run(g->t->t)) {
             PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
-            print(g->t->t, 0);
-            puts("\n");
+            print(g->t->t, 0); puts("\n");
             if (g->t == G->t) {pull(G);}
             else {removeat(G, prev);}
         }

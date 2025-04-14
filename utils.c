@@ -3,7 +3,7 @@
 #define DARKRED puts("\033[0;31m");
 #define GREEN   puts("\033[1;32m");
 #define DARKGREEN puts("\033[0;32m");
-#define YELLOW  puts("\033[1;33m");
+#define YELLOW  puts("\033[0;33m");
 #define DARKYELLOW puts("\033[2;33m");
 #define BLUE    puts("\033[1;34m");
 #define DARKBLUE puts("\033[2;34m");
