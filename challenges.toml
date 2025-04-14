@@ -169,7 +169,10 @@ result = """
 """
 
 [exclaim]
-challenge = """1 3 0 <~."""
+challenge = """
+1 3 0 <~.
+
+"""
 result = """
 ┏ program: x e
   ┣ x
@@ -235,6 +238,22 @@ result = """
   ┗ x1 e
 """
 
+[funcarray2]
+challenge = """1 3 [. 1 2 3 4 5 6 7 8 9 ]. ."""
+result = """
+┏ program: x e
+  ┣ x9
+  ┣ x8
+  ┣ x7
+  ┣ x6
+  ┣ x5
+  ┣ x4
+  ┣ x3
+  ┣ x2
+  ┣ x1
+  ┗ x1 e
+"""
+
 [clone]
 challenge = """1 3 0 <~. ."""
 result = """
@@ -269,6 +288,27 @@ result = """
   ┣ x3
     ┗ x1 e
   ┗ x1 e
+"""
+
+[throw2]
+challenge = """
+3 0 [. 1 2 <-.. ]. :t
+4 5 6 [. t. ].
+"""
+result = """
+┏ program: x e
+  ┣ x2
+  ┣ x6
+    ┗ x1 e
+  ┣ x5
+  ┣ x4
+  ┣ t
+  ┣ x
+    ┣ dot
+    ┣ func
+    ┣ x2
+    ┗ x1 e
+  ┗ x3 e
 """
 
 [consume1]
@@ -925,31 +965,330 @@ result = """
 [threads]
 challenge = """
 0
-0 [.
-  1 64 ;.
-  63 ,..
-"thread 1\n" print.. ].
-addthread.
-0 [. 2 "thread 2\n" print.. ].
-addthread.
-0 [. 3 "thread 3\n" print.. ].
-addthread.
-0 [. 4 "thread 4\n" print.. ].
-addthread.
+0 [. 1 "thread 1\n" print.. ]. thread.
+0 [. 2 "thread 2\n" print.. ]. thread.
+0 [. 3 "thread 3\n" print.. ]. thread.
+0 [. 4 64 ;. 63 ,.. "thread 4\n" print.. ]. thread.
+detach. 1 ,.
+detach. 1 ,.
+detach. 1 ,.
+detach. 1 ,.
 """
 result = """
-thread 2
-┏ program: x e
-  ┗ x2 e
 thread 3
 ┏ program: x e
   ┗ x3 e
+thread 2
+┏ program: x e
+  ┗ x2 e
 thread 1
 ┏ program: x e
   ┗ x1 e
 ┏ program: x e
-  ┗ x e
+  ┗ xx2 e
 thread 4
 ┏ program: x e
   ┗ x4 e
+"""
+
+[threads2]
+challenge = """
+0
+0 [. 4 5 6 "thread 7\n" print.. 10 3 -. <-.. ]. thread.
+detach. :t
+1 2 3
+t [. <-. ].
+"""
+result = """
+thread 7
+┏ program: x e
+  ┣ x6
+  ┣ x5
+  ┗ x4 e
+┏ program: x e
+  ┣ x7
+  ┣ program: x e
+    ┣ x6
+    ┣ x5
+    ┗ x4 e
+  ┣ x3
+  ┣ x2
+  ┣ x1
+  ┣ t
+  ┣ program: x e
+    ┣ x6
+    ┣ x5
+    ┗ x4 e
+  ┗ x e
+"""
+
+[threadconsume]
+challenge = """
+8
+0 [. 4 5 6 ].
+thread. [. ->. ].
+detach. 
+8
+0 [. 4 5 6 ->.. ].
+thread. [. ->. ].
+detach. 
+8
+"""
+result = """
+┏ program: x e
+  ┣ x6
+  ┣ x5
+  ┗ x4 e
+┏ program: x e
+  ┣ x8
+  ┣ x6
+  ┣ x5
+  ┗ x4 e
+┏ program: x e
+  ┣ x8
+  ┣ program: x e
+    ┣ x8
+    ┣ x6
+    ┣ x5
+    ┗ x4 e
+  ┣ x8
+  ┣ program: x e
+    ┣ x6
+    ┣ x5
+    ┗ x4 e
+  ┗ x8 e
+"""
+
+[stepper1]
+challenge = """
+0 [. 1 2 3 4 5 6 7 8 9 ]. thread.
+step.
+step.
+step.
+step.
+"""
+result = """
+┏ program: x e
+  ┗ program: x e
+    ┣ x4
+    ┣ x3
+    ┣ x2
+    ┗ x1 e
+"""
+
+[threadreturn]
+challenge = """
+0 [. 1 2 3 <-.. ]. thread.
+step.
+step.
+step.
+step.
+step.
+[. <-. ].
+"""
+result = """
+┏ program: x e
+  ┣ x3
+  ┗ program: x e
+    ┣ x2
+    ┗ x1 e
+"""
+
+# [negative]
+# challenge = """
+# 0 [. 
+#   0 [. 1 ]. :one
+#   one.. one..
+#   one.. one..
+#   one.. one..
+# ].
+# thread.
+# detach.
+# 0 1 -. -.
+# 1 -.
+# """
+# result = """
+# ┏ program: x e
+#   ┗ program: x e
+#     ┣ x4
+#     ┣ x3
+#     ┣ x2
+#     ┗ x1 e
+# """
+
+[multihi]
+challenge = """
+0 [. .. "hi!\n" print .. ]. 7 ;. .
+"""
+result = """
+hi!
+hi!
+hi!
+hi!
+hi!
+hi!
+hi!
+┏ program: x e
+  ┗ x e
+"""
+
+[execnext]
+challenge = """
+0 [.
+  0 [. \"library\" print.. ]. :\"
+  0 [. .. 1 2 -.. ]. :one
+  0 [. one 3 ;. .. ]. :many
+].
+:many . :many
+2 3 many many.
+"""
+result = """
+┏ program: x e
+  ┣ xffffffff
+  ┣ xffffffff
+  ┣ xffffffff
+  ┣ xffffffff
+  ┣ xffffffff
+  ┣ xffffffff
+  ┣ x3
+  ┣ x2
+  ┣ many
+  ┣ x
+    ┣ dotx2
+    ┣ x
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+    ┣ x
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+    ┗ x e
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+  ┗ library
+"""
+
+[grabinternal]
+challenge = """
+0 [.
+  0 [. 
+    0 [. \"library\" print.. ]. :\"
+    0 [. .. 1 2 -.. ]. :one
+    0 [. one 3 ;. .. ]. :many
+  ].
+].
+:P . [. <-. ].
+:many . :many
+1 2 3 
+2 3 
+"""
+result = """
+┏ program: x e
+  ┣ x3
+  ┣ x2
+  ┣ x3
+  ┣ x2
+  ┣ x1
+  ┣ many
+  ┣ x
+    ┣ dotx2
+    ┣ x
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+    ┣ x
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+    ┗ x e
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+  ┣ library
+  ┗ x e
+"""
+
+
+[internalthreads]
+challenge = """
+0 [.
+  0 [. \"library\" print.. ]. :\"
+  0 [. .. 1 2 -.. ]. :one
+  0 [. one 3 ;. .. ]. :many
+]. thread.
+detach.
+:P . [. <-. ].
+:many . :many
+1 2 3 
+1 2 many .
+2 3 
+"""
+result = """
+┏ program: library
+┏ program: x e
+  ┣ x3
+  ┣ x2
+  ┣ xffffffff
+  ┣ xffffffff
+  ┣ xffffffff
+  ┣ x2
+  ┣ x1
+  ┣ x3
+  ┣ x2
+  ┣ x1
+  ┣ many
+  ┣ x
+    ┣ dotx2
+    ┣ x
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+    ┣ x
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+    ┗ x e
+      ┣ dotx4
+      ┣ func
+      ┣ x2
+      ┣ x1
+      ┗ dot e
+  ┣ library
+  ┣ x
+  ┗ program: library
+"""
+
+[exiter]
+challenge = """
+0 [. 1 2 3 exit.. 4 5 6 ]. thread.
+detach.
+"""
+result = """
+┏ program: x e
+  ┗ program: x e
+    ┣ x3
+    ┣ x2
+    ┗ x1 e
+┏ program: x e
+  ┣ x3
+  ┣ x2
+  ┗ x1 e
 """
