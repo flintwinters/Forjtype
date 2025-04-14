@@ -4,8 +4,9 @@
 #define GREEN   puts("\033[1;32m");
 #define DARKGREEN puts("\033[0;32m");
 #define YELLOW  puts("\033[1;33m");
-#define DARKYELLOW puts("\033[0;33m");
+#define DARKYELLOW puts("\033[2;33m");
 #define BLUE    puts("\033[1;34m");
+#define DARKBLUE puts("\033[2;34m");
 #define PURPLE  puts("\033[1;35m");
 #define CYAN    puts("\033[1;36m");
 #define DARKCYAN puts("\033[0;36m");
@@ -22,10 +23,10 @@ int max(int a, int b) {return (a > b) ? a : b;}
 extern int getchar();
 extern int putchar(int c);
 void printint(unsigned long long n, Word size) {
+    if (!n) {putchar('0');}
     size *= 2;
     char m;
     bool started = false;
-    putchar('x');
     for (int i = size-1; i >= 0; i--) {
         m = 0xf & n>>(4*i);
         if (m == 0 && !started) {}

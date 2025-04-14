@@ -2,6 +2,8 @@ all:
 	@python3 challenger.py ${CHALL}
 fj: Forj.c Vect.c
 	@gcc Forj.c -g -o fj
+int: Forj.c Vect.c
+	@gcc Forj.c -DINTERACTIVE -o fj && fj
 rv: 
 	@riscv64-unknown-elf-as setup.s -g -o setup.o &&\
 	riscv64-unknown-elf-gcc \

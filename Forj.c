@@ -61,12 +61,14 @@ Atom* del(Atom* a) {
     if (--a->r) {return a;}
     
     if (a->f == vect) {freevect(a->w.v);}
-    Atom* b = 0;
-    if (!a->e) {b = get(del(a->n), -1);}
-    Atom* n = del(a->t);
-    if (n && n->n == a) {n->n = 0;}
+    if (a->e == false) {del(a->n);}
+    if (del(a->t)) {
+        Atom* n = get(a->t, -1);
+        if (n->n == a) {n->n = 0;}
+    }
     reclaim(a, sizeof(struct Atom));
-    return b;
+    // return b;
+    return 0;
 }
 // Get a reference to a.
 // Does nothing if a == 0.
@@ -210,9 +212,7 @@ void array(Atom* a, Prog* g) {
 //      A single dot '.', runs immediately when it is
 //      parsed (at parse-time).  Whereas a double dot
 //      '..' merely pushes this function.
-void debugger(Prog* g) {
-
-}
+void debugger(Prog* g) {}
 void dot(Prog* g) {
     Atom* p = P(g)->t;
     Atom* a = p->t;
@@ -628,13 +628,13 @@ void printstr(Atom* a, Atom* p, Prog* g) {
     fflush(stdout);
     del(s);
 }
-void print(Atom* a, int depth, bool printnext);
+void print(Atom* a, int depth);
 void printprog(Atom* a, Atom* p, Prog* g) {
     pull(p);
     int depth = pullw(p);
     if (p->t->w.w) {printint(p->t->w.w, 8); puts(" ");}
     p = P(p->t)->t;
-    if (p) {puts("program: "); print(p, depth, true);}
+    if (p) {puts("program: "); print(p, depth);}
     else {puts("empty program");}
 }
 Prog* newprog() {
@@ -655,16 +655,13 @@ void addthread(Atom* a, Atom* p, Prog* g) {
     pull(p);
     Atom* g2 = newprog();
     growexec(p->t->t, g2);
+    g2->w.w = p->t->w.w;
     pull(p);
     push(p, g2);
 }
 void detachthread(Atom* a, Atom* p, Prog* g) {
     pull(p);
     pushnew(G, p->t);
-}
-void pushprog(Atom* a, Atom* p, Prog* g) {
-    pull(p);
-    push(p, newprog());
 }
 void strconcat(Atom* a, Atom* p, Prog* g) {
     pull(p);
@@ -711,7 +708,6 @@ Func builtins(char* c) {
     if (equstr(c, "debug"))  {return toggledebug;}
     if (equstr(c, "thread")) {return addthread;}
     if (equstr(c, "detach")) {return detachthread;}
-    if (equstr(c, "program")){return pushprog;}
     return 0;
 }
 // Parses one token over the program g
@@ -796,48 +792,16 @@ void parseone(Atom* g) {
     }
     Atom* e = pushnew(E(g), 0)->t;
     addtok(i, g);
+    if (E(g)->t == 0) {
+        pull(P(g));
+        return;
+    }
     pushnew(e, createmultidot(1));
     pushnew(e, new());
     e->t->t->w.f = tokenizer;
     e->t->t->f = func;
     pushnew(e, pulln(P(g)->t));
     del(e->t->t);
-}
-void tokens(Prog* g) {
-    // Splitting on these 
-    char* c = " \n\t\b\r";
-    Atom* p = P(g)->t;
-    Vect* str = getstr(p->t)->t->w.v;
-    int i = 0;
-    while (contains(str->v[i], c)) {i++;}
-    if (i) {
-        discardtok(i, g);
-        str = getstr(p->t)->t->w.v;
-    }
-    char b = str->v[0] == '"';
-    if (b) {
-        charptostr(p, str->v+1);
-        i = pullw(p);
-        swap(p);
-        discardtok(i, g);
-    }
-    else {
-        for (i = 0; str->v[i] == '.'; i++);
-        if (!i) {
-            while (1) {
-                if (i == str->len) {addtok(i-1, g); return;}
-                if (str->v[i] == '.' || contains(str->v[i], c)) {break;}
-                i++;
-            }
-        }
-        addtok(i, g);
-    }
-    tokens(g);
-}
-void tokench(Prog* g, char* c) {
-    pushstr(P(g)->t, c);
-    tokens(g);
-    pull(P(g)->t);
 }
 
 // print helpers
@@ -850,10 +814,10 @@ void printarr(Atom* a, int depth) {
     for (int i = 0; i < depth; i++) {puts("  ");}
     if (a->e) {puts("┗ ");}
     else {puts("┣ ");}
-    print(a, depth, true);
+    print(a, depth);
 }
 
-void print(Atom* a, int depth, bool printnext) {
+void print(Atom* a, int depth) {
     if (!a) {puts("None\n"); return;}
     Atom* s = (debugging) ? 0 : chscan(a->t, "\"", false);
     bool showt = false || a->t;
@@ -878,13 +842,15 @@ void print(Atom* a, int depth, bool printnext) {
         }
         else {
             if (a->e == 2) {DARKGREEN;}
-            else if (a->f == word) {BLACK; printint(a->w.w, 4);}
+            else if (a->f == word) {DARKRED; printint(a->w.w, 4);}
             else if (a->f == func) {GREEN; puts("func");}
             else if (a->f == exec) {DARKRED; puts("dot");}
             else if (a->f == vect) {DARKGREEN; printvect(a->w.v);}
-            else if (a->f == atom) {YELLOW;}
-            if (a->r != 1) {RED; printint(a->r, 4);}
+            else if (a->f == atom) {DARKYELLOW;}
+            if (a->r != 1) {RED; puts(" x"); printint(a->r, 4);}
         }
+        RESET;
+        #ifndef INTERACTIVE
         if (a->e) {
             DARKGREEN; puts(" e");
             if (!a->n) {putchar('0');}
@@ -892,13 +858,20 @@ void print(Atom* a, int depth, bool printnext) {
             //     printint((Word) a->n, 8);
             //     putchar(' ');
             // }
-            RESET;
         }
+        #endif
     }
     if (showt) {printarr(a->t, depth+1);}
-    if (printnext && !a->e) {printarr(a->n, depth);}
+    if (depth && !a->e) {printarr(a->n, depth);}
 }
-void println(Atom* a) {DARKYELLOW; puts("┏ "); print(a, 0, true); putchar('\n');}
+void println(Atom* a) {
+    if (a->e == 2) {return;}
+    DARKYELLOW;
+    if (a->e) {puts("  ╺ ");}
+    else {puts("  ┏ ");}
+    print(a, 1);
+    putchar('\n');
+}
 
 Atom* loadprog(Atom* a, char* program) {
     Atom* g = pushnew(a, newprog())->t->t;
@@ -912,6 +885,7 @@ Atom* loadprog(Atom* a, char* program) {
 }
 
 int main() {
+    #ifndef INTERACTIVE
     FILE* FP = fopen("challenge", "r");
     fseeko(FP, 0, SEEK_END);
     int i = ftell(FP);
@@ -930,7 +904,9 @@ int main() {
     Atom* prev = g->t;
     while (G->t->e != 2) {
         if (g->t->t->w.w == 0 && !run(g->t->t)) {
-            DARKYELLOW; puts("┏ "); print(g->t->t, 0, false); puts("\n");
+            PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
+            print(g->t->t, 0);
+            puts("\n");
             if (g->t == G->t) {pull(G);}
             else {removeat(G, prev);}
         }
@@ -941,20 +917,42 @@ int main() {
     del(g);
     del(G);
 
-    // Atom* G = ref(newprog());
-    // char buff[0x100];
-    // for (int i = 0; i < 0x100; i++) {buff[i] = 0;}
-    // // P = ref(new());
-    // // P->e = true;
-    
-    // while (buff[0] != '\n') {
-    //     tokench(G, buff);
-    // //     P = runfunc(P, tokenizer);
-    //     println(G, true);
+    #else
+    G = ref(new());
+    Atom* interactive = pushnew(G, newprog())->t->t;
+    interactive->w.w = 1;
+    Atom* g = ref(new());
+    tset(g, G->t);
+    Atom* prev = g->t;
+    char buff[0x100];
+    for (int i = 0; i < 0x100; i++) {buff[i] = 0;}
 
-    //     puts("-> ");
-    //     fgets(buff, 0x100, stdin);
-    // }
+    Atom* p = P(interactive);
+    while (G->t->e != 2 && buff[0] != '\n') {
+        pushstr(p->t, buff);
+        pushfunc(p->t, tokenizer);
+        push(p->t, createmultidot(1));
+        Atom* e = pushnew(E(interactive), 0)->t;
+        pushnew(e, p->t->t);
+        while (run(interactive));
+        if (p->t->e == 2) {break;}
+        println(p->t->t);
 
-    // del(G);
+        DARKBLUE; puts("🡪 "); BLUE;
+        fgets(buff, 0x100, stdin);
+
+        if (g->t->t->w.w == 0 && !run(g->t->t)) {
+            PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
+            print(g->t->t, 0);
+            puts("\n");
+            if (g->t == G->t) {pull(G);}
+            else {removeat(G, prev);}
+        }
+        else {prev = g->t;}
+        if (prev->e) {tset(g, G->t);}
+        else {tset(g, prev->n);}
+    }
+    del(g);
+    del(G);
+    #endif
 }
