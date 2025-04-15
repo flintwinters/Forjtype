@@ -7,6 +7,7 @@ typedef union data data;
 typedef enum form form;
 
 // A program thread has three components:
+// The structure and way these are accessed will probably change.
 // 1.   "P" - data pointer stack
 //      This stack tracks the working data branch
 //      a new value is pushed to this stack when
@@ -33,6 +34,8 @@ union data {
     Atom* a;
 };
 enum form {word, func, vect, atom, exec};
+
+// Can t and w be combined into one member?
 struct Atom {
     Atom* n, *t; // next.  type.
     data w;
@@ -51,6 +54,7 @@ Atom* new() {
     return a;
 }
 Atom* get(Atom* a, int i);
+
 // Deletes a reference to an atom.
 // If the atom reaches zero references, free its memory.
 // Also frees vects:
@@ -63,6 +67,8 @@ Atom* del(Atom* a) {
     if (a->f == vect) {freevect(a->w.v);}
     if (a->e == false) {del(a->n);}
     if (del(a->t)) {
+        // If a->t was referenced by something else,
+        // and a owns it, the parent points must be corrected.
         Atom* n = get(a->t, -1);
         if (n->n == a) {n->n = 0;}
     }
@@ -89,9 +95,9 @@ Atom* tset(Atom* a, Atom* t) {
     a->t = t;
     return a;
 }
-// Sets p->t to a and appends a to the old p->t
-// e == 2 is used only in tandem for pull: it signifies the
-// empty list, while still pointing to its owner.
+// Points p->t to a and appends a to the old p->t
+// e == 2 is used only in tandem with pull: it signifies the
+// empty list, while still holding a parent pointer.
 Atom* push(Atom* p, Atom* a) {
     if (p->t) {
         if (p->t->e == 2) {
@@ -111,8 +117,9 @@ Atom* push(Atom* p, Atom* a) {
     }
     return tset(p, a);
 }
-// Init a new atom with type t, and push it to p.
+// Init a new atom pointing to t, and push it to p.
 Atom* pushnew(Atom* p, Atom* t) {return push(p, tset(new(), t));}
+
 // Unique push function which should only be used on
 // an empty p.  Creates a new signifier atom, that
 // marks an empty p.  Note that t is not ref'd.
@@ -128,17 +135,6 @@ Atom* pushe(Atom* p, Atom* t) {
 void pull(Atom* p) {
     if (p->t->e) {pushe(p, p->t->n);}
     else {tset(p, p->t->n);}
-}
-// removes the atom after a in p
-void removeat(Atom* p, Atom* a) {
-    bool e = a->n->e;
-    if (!e) {nset(a, a->n->n);}
-    else {
-        Atom* n = a->n;
-        a->n = a->n->n;
-        del(n);
-    }
-    a->e = e;
 }
 // Pulls without deleting the resulting atom, and returns it.
 Atom* pulln(Atom* p) {
@@ -212,7 +208,6 @@ void array(Atom* a, Prog* g) {
 //      A single dot '.', runs immediately when it is
 //      parsed (at parse-time).  Whereas a double dot
 //      '..' merely pushes this function.
-void debugger(Prog* g) {}
 void dot(Prog* g) {
     Atom* p = P(g)->t;
     Atom* a = p->t;
@@ -362,7 +357,7 @@ void runfunc(Atom* g, Func f) {
 // It will be searched as well.
 // This is used for implicit variable search: `val :name name`
 // This is related to the :symbol functionality.
-// Since one scan call leaves (a reference to the) the associated
+// Since one scan call leaves (a reference to) the associated
 // variable on the top, :symbol2 can be called again to get
 // a variable from the second, interior layer.
 Atom* chscan(Atom* a, char* c, bool full) {
@@ -554,6 +549,7 @@ Atom* createmultidot(int i) {
     return t;
 }
 void parseone(Atom* g);
+void debugger(Prog* g) {}
 void tokenizer(Atom* a, Atom* p, Prog* g) {
     pull(p);
     if (debugging) {
@@ -886,6 +882,30 @@ Atom* loadprog(Atom* a, char* program) {
     return g;
 }
 
+// Removes the atom after a in p
+void removeat(Atom* p, Atom* a) {
+    bool e = a->n->e;
+    if (!e) {nset(a, a->n->n);}
+    else {
+        Atom* n = a->n;
+        a->n = a->n->n;
+        del(n);
+    }
+    a->e = e;
+}
+Atom* threader(Atom* prev, Atom* g) {
+    if (g->t->t->w.w == 0 && !run(g->t->t)) {
+        PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
+        print(g->t->t, 0); puts("\n");
+        if (g->t == G->t) {pull(G);}
+        else {removeat(G, prev);}
+    }
+    else {prev = g->t;}
+    if (prev->e) {tset(g, G->t);}
+    else {tset(g, prev->n);}
+    return prev;
+}
+
 int main() {
     #ifndef INTERACTIVE
     FILE* FP = fopen("challenge", "r");
@@ -904,17 +924,7 @@ int main() {
     Atom* g = ref(new());
     tset(g, G->t);
     Atom* prev = g->t;
-    while (G->t->e != 2) {
-        if (g->t->t->w.w == 0 && !run(g->t->t)) {
-            PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
-            print(g->t->t, 0); puts("\n");
-            if (g->t == G->t) {pull(G);}
-            else {removeat(G, prev);}
-        }
-        else {prev = g->t;}
-        if (prev->e) {tset(g, G->t);}
-        else {tset(g, prev->n);}
-    }
+    while (G->t->e != 2) {prev = threader(prev, g);}
     del(g);
     del(G);
 
@@ -930,10 +940,6 @@ int main() {
 
     Atom* p = P(interactive);
     while (G->t->e != 2 && buff[0] != '\n') {
-        puts("\e[2J\e[H");
-
-        DARKBLUE; puts("🡪🡪 ");
-        puts("\e[1E");
         pushstr(p->t, buff);
         pushfunc(p->t, tokenizer);
         push(p->t, createmultidot(1));
@@ -942,20 +948,12 @@ int main() {
         while (run(interactive));
         if (p->t->e == 2) {break;}
         println(p->t->t);
+        DARKBLUE; puts("🡪🡪 ");
         BLUE;
-        puts("\e[H\e[3C");
         fgets(buff, 0x100, stdin);
         RESET;
 
-        if (g->t->t->w.w == 0 && !run(g->t->t)) {
-            PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
-            print(g->t->t, 0); puts("\n");
-            if (g->t == G->t) {pull(G);}
-            else {removeat(G, prev);}
-        }
-        else {prev = g->t;}
-        if (prev->e) {tset(g, G->t);}
-        else {tset(g, prev->n);}
+        prev = threader(prev, g);
     }
     del(g);
     del(G);

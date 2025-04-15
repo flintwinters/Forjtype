@@ -10,7 +10,7 @@ with open("challenges.toml", "r") as f:
     T = loads(f.read())
 
 def fail(name, s):
-    print(f"\033[31;1m{name} "+"─"*30+"\033[0m\n"+s)
+    print(f"\033[31;1m{name} "+"─"*20+"\033[0m\n"+s)
 
 def replaceall(s, r):
     for k, v in r:
@@ -54,7 +54,7 @@ def main():
             failed = True
     else:
         for k, v in T.items():
-            s = runforj(v, val=True)
+            s = runforj(v)
             if s:
                 fail(k, s)
                 failed = True
