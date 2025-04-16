@@ -1,16 +1,30 @@
-#define BLACK   puts("\033[1;30m");
-#define RED     puts("\033[1;31m");
-#define DARKRED puts("\033[0;31m");
-#define GREEN   puts("\033[1;32m");
-#define DARKGREEN puts("\033[0;32m");
-#define YELLOW  puts("\033[0;33m");
-#define DARKYELLOW puts("\033[2;33m");
-#define BLUE    puts("\033[1;34m");
-#define DARKBLUE puts("\033[2;34m");
-#define PURPLE  puts("\033[1;35m");
-#define CYAN    puts("\033[1;36m");
-#define DARKCYAN puts("\033[0;36m");
-#define RESET   puts("\033[0m");
+char* colorcodes[] = {"\033[1;30m",
+                      "\033[1;31m",
+                      "\033[0;31m",
+                      "\033[1;32m",
+                      "\033[0;32m",
+                      "\033[0;33m",
+                      "\033[2;33m",
+                      "\033[1;34m",
+                      "\033[2;34m",
+                      "\033[1;35m",
+                      "\033[1;36m",
+                      "\033[0;36m",
+                      "\033[0m"};
+
+#define BLACK       colorcodes[0]
+#define RED         colorcodes[1]
+#define DARKRED     colorcodes[2]
+#define GREEN       colorcodes[3]
+#define DARKGREEN   colorcodes[4]
+#define YELLOW      colorcodes[5]
+#define DARKYELLOW  colorcodes[6]
+#define BLUE        colorcodes[7]
+#define DARKBLUE    colorcodes[8]
+#define PURPLE      colorcodes[9]
+#define CYAN        colorcodes[10]
+#define DARKCYAN    colorcodes[11]
+#define RESET       colorcodes[12]
 
 typedef long long Word;
 typedef char byte;

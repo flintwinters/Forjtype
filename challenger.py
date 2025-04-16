@@ -1,9 +1,12 @@
 #!/usr/bin/python3.11
+from pyperclip import copy
 from sys import argv
 from toml import loads
 from os import system
 from os import path
 import re
+from pyautogui import hotkey
+# hotkey("enter"); hotkey("win", "space")
 
 T = {} 
 with open("challenges.toml", "r") as f:
@@ -30,10 +33,12 @@ def runforj(v, val=False):
             s = f.read()
             return "execution returned error code"+s
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    
     s = ""
     with open("challengeresult", "r") as f:
         s = f.read()
     st = ansi_escape.sub('', s).strip()
+    st = st.replace("┃", " ");
     if 'result' not in v:
         return "No result found"
     r = v['result'].strip()

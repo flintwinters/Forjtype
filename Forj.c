@@ -10,7 +10,7 @@ typedef enum form form;
 // The structure and way these are accessed will probably change.
 // 1.   "P" - data pointer stack
 //      This stack tracks the working data branch
-//      a new value is pushed to this stack when
+//      a new value is pushendd to this stack when
 //      entering into an array, using [. for example
 // 2.   "E" - execution stack
 //      This stack is needed for multithreaded debugging.
@@ -110,8 +110,6 @@ Atom* push(Atom* p, Atom* a) {
     }
     else {
         if (!a->e) {del(a->n);}
-        // if (p->n) {a->n = p->n->t;}
-        // else {a->n = p;}
         a->n = p;
         a->e = true;
     }
@@ -123,7 +121,7 @@ Atom* pushnew(Atom* p, Atom* t) {return push(p, tset(new(), t));}
 // Unique push function which should only be used on
 // an empty p.  Creates a new signifier atom, that
 // marks an empty p.  Note that t is not ref'd.
-Atom* pushe(Atom* p, Atom* t) {
+Atom* pushend(Atom* p, Atom* t) {
     Atom* e = new();
     e->n = t;
     e->e = 2;
@@ -133,7 +131,7 @@ Atom* pushe(Atom* p, Atom* t) {
 // Pops an element from the top of p.  If it's the last element,
 // replace it with an e == 2 atom.
 void pull(Atom* p) {
-    if (p->t->e) {pushe(p, p->t->n);}
+    if (p->t->e) {pushend(p, p->t->n);}
     else {tset(p, p->t->n);}
 }
 // Pulls without deleting the resulting atom, and returns it.
@@ -167,6 +165,13 @@ Atom* chscan(Atom* a, char* c, bool full);
 Atom* P(Prog* g) {return chscan(g->t, "P", true);}
 Atom* E(Prog* g) {return chscan(g->t, "E", true);}
 Atom* R(Prog* g) {return chscan(g->t, "R", true);}
+// push residual
+void throwr(Atom* r, Atom* p, int count) {
+    pushnew(r, p->t);
+    r->t->w.w = count;
+    for (int i = 0; i < count; i++) {pull(p);}
+}
+
 // Executing behavior for a list.
 // [ a b c ] .
 // ^ From left to right, (bottom to top of stack),
@@ -245,11 +250,11 @@ void open(Atom* a, Atom* p, Prog* g) {
     if (p->n->t) {
         if (p->n->t->t) {tset(p, p->n->t->t);}
         else {
-            // pushe(p->n->t, p->n->t);
-            pushe(p, p->n->t);
+            // pushend(p->n->t, p->n->t);
+            pushend(p, p->n->t);
         }
     }
-    // else {pushe(p, p->t);}
+    // else {pushend(p, p->t);}
 }
 // Close the current atom ]
 void close(Atom* a, Atom* p, Prog* g) {
@@ -431,7 +436,7 @@ int chlen(char* c) {
     while (*c++) {n++;}
     return n;
 }
-// Pushes a vector, consumes length from stack
+// pushes a vector, consumes length from stack
 Atom* pushvect(Atom* a, Atom* p) {
     int maxlen = pullw(p);
     Vect* v = valloclen((maxlen) ? maxlen : 1);
@@ -599,13 +604,17 @@ void multiplier(Atom* a, Atom* p, Prog* g) {
 }
 void mult(Atom* a, Atom* p, Prog* g) {
     pull(p);
-    Word x = pullw(p);
-    p->t->w.w *= x;
+    // Word x = p->t->w.w * p->t->n->w.w;
+    // throwr(R(g), p, 2);
+    // pushw(p, x);
+    p->t->w.w *= pullw(p);
 }
 void sub(Atom* a, Atom* p, Prog* g) {
     pull(p);
-    Word x = pullw(p);
-    p->t->w.w -= x;
+    // Word x = p->t->n->w.w - p->t->w.w;
+    // throwr(R(g), p, 2);
+    // pushw(p, x);
+    p->t->w.w -= pullw(p);
 }
 void toggledebug(Atom* a, Atom* p, Prog* g) {
     pull(p);
@@ -624,15 +633,42 @@ void printstr(Atom* a, Atom* p, Prog* g) {
     fflush(stdout);
     del(s);
 }
-void print(Atom* a, int depth);
+void print(Atom* a, int depth, bool shown, char* spinecolor);
+void printspine(bool e, int depth, char* spinecolor);
 void printprog(Atom* a, Atom* p, Prog* g) {
     pull(p);
     int depth = pullw(p);
     if (p->t->w.w) {printint(p->t->w.w, 8); puts(" ");}
-    p = P(p->t)->t;
-    YELLOW;
-    if (p) {puts("program: "); print(p, depth);}
+    a = P(p->t)->t;
+    puts(YELLOW);
+    if (a) {puts("program:\n"); print(a, depth+1, true, DARKYELLOW);}
     else {puts("empty program");}
+
+    Atom* r = R(p->t)->t;
+    if (r && len(r)) {
+        puts("\n");
+        printspine(0, depth, BLUE);
+        puts("residual:\n");
+        print(r, depth+1, true, BLUE);
+        while (1) {
+            puts("\n");
+            if (r->e) {break;}
+            r = r->n;
+        }
+    }
+    Atom* e = E(p->t)->t;
+    if (e && len(e)) {
+        puts("\n");
+        printspine(0, depth, GREEN);
+        puts("exec:\n");
+        e = e->t;
+        while (1) {
+            print(e->t, depth, false, GREEN);
+            puts("\n");
+            if (e->e) {break;}
+            e = e->n;
+        }
+    }
 }
 Prog* newprog() {
     Prog* g = new();
@@ -805,18 +841,19 @@ void parseone(Atom* g) {
 void printvect(Vect* v) {
     for (int i = 0; v->v[i] && i < v->len; i++) {putchar(v->v[i]);}
 }
-void printarr(Atom* a, int depth) {
-    puts("\n");
-    DARKYELLOW;
+void printspine(bool e, int depth, char* spinecolor) {
+    // puts(BLACK);
     for (int i = 0; i < depth; i++) {puts("  ");}
-    if (a->e) {puts("┗ ");}
+    puts(spinecolor);
+    if (e) {puts("┗ ");}
     else {puts("┣ ");}
-    print(a, depth);
 }
 
-void print(Atom* a, int depth) {
+void print(Atom* a, int depth, bool shown, char* spinecolor) {
+    printspine(a->e, depth, spinecolor);
     if (!a) {puts("None\n"); return;}
-    Atom* s = (debugging) ? 0 : chscan(a->t, "\"", false);
+    // Atom* s = (debugging) ? 0 : chscan(a->t, "\"", false);
+    Atom* s = chscan(a->t, "\"", false);
     bool showt = false || a->t;
     if (s) {
         // printer functionality
@@ -835,21 +872,21 @@ void print(Atom* a, int depth) {
         // printint((Word) a, 8);
         // putchar(' ');
         if (isstr(a)) {
-            DARKGREEN; printvect(getstr(a)->t->w.v); showt = false;
+            puts(DARKGREEN); printvect(getstr(a)->t->w.v); showt = false;
         }
         else {
             if (a->e == 2) {}
-            else if (a->f == word) {DARKRED; printint(a->w.w, 4);}
-            else if (a->f == func) {GREEN; puts("func");}
-            else if (a->f == exec) {DARKRED; puts("dot");}
-            else if (a->f == vect) {RED; printvect(a->w.v);}
-            else if (a->f == atom) {DARKYELLOW;}
-            if (a->r != 1) {RED; puts(" x"); printint(a->r, 4);}
+            else if (a->f == word) {puts(DARKRED); printint(a->w.w, 4);}
+            else if (a->f == func) {puts(GREEN); puts("func");}
+            else if (a->f == exec) {puts(DARKRED); puts(".");}
+            else if (a->f == vect) {puts(RED); printvect(a->w.v);}
+            else if (a->f == atom) {puts(DARKYELLOW);}
+            if (a->r != 1) {puts(RED); puts(" x"); printint(a->r, 4);}
         }
-        RESET;
+        puts(RESET);
         #ifndef INTERACTIVE
         if (a->e) {
-            DARKGREEN; puts(" e");
+            puts(DARKGREEN); puts(" e");
             if (!a->n) {putchar('0');}
             // else {
             //     printint((Word) a->n, 8);
@@ -858,16 +895,14 @@ void print(Atom* a, int depth) {
         }
         #endif
     }
-    if (showt) {printarr(a->t, depth+1);}
-    if (depth && !a->e) {printarr(a->n, depth);}
+    if (!shown) {return;}
+    if (showt) {puts("\n"); print(a->t, depth+1, shown, spinecolor);}
+    if (depth && !a->e) {puts("\n"); print(a->n, depth, shown, spinecolor);}
 }
 void println(Atom* a) {
     if (a->e == 2) {return;}
-    YELLOW;
-    if (a->e) {puts("  ╺ ");}
-    else {puts("  ┏ ");}
-    DARKYELLOW;
-    print(a, 1);
+    puts(DARKYELLOW);
+    print(a, 1, true, DARKYELLOW);
     putchar('\n');
 }
 
@@ -895,8 +930,7 @@ void removeat(Atom* p, Atom* a) {
 }
 Atom* threader(Atom* prev, Atom* g) {
     if (g->t->t->w.w == 0 && !run(g->t->t)) {
-        PURPLE; puts((g->t->t->e) ? "╺ " : "┏ ");
-        print(g->t->t, 0); puts("\n");
+        print(g->t->t, 0, true, DARKYELLOW); puts("\n");
         if (g->t == G->t) {pull(G);}
         else {removeat(G, prev);}
     }
@@ -948,10 +982,10 @@ int main() {
         while (run(interactive));
         if (p->t->e == 2) {break;}
         println(p->t->t);
-        DARKBLUE; puts("🡪🡪 ");
-        BLUE;
+        puts(DARKBLUE); puts("🡪🡪 ");
+        puts(BLUE);
         fgets(buff, 0x100, stdin);
-        RESET;
+        puts(RESET);
 
         prev = threader(prev, g);
     }
