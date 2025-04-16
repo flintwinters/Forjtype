@@ -70,7 +70,7 @@ challenge = """1 2 1 ,"""
 result = """
 ┗ program:
   ┗ 0 e
-    ┣ func
+    ┣ ,
     ┣ 1
     ┣ 2
     ┗ 1 e
@@ -126,7 +126,7 @@ result = """
 ┗ program:
   ┗ 0 e
     ┣ .
-    ┣ func
+    ┣ ,
     ┣ 1
     ┣ 2
     ┗ 1 e
@@ -147,7 +147,7 @@ result = """
   ┗ 0 e
     ┣ .
       ┗ . e
-    ┣ func
+    ┣ ,
     ┣ 1
     ┣ 2
     ┗ 1 e
@@ -159,7 +159,7 @@ result = """
 ┗ program:
   ┗ 0 e
     ┣ .
-    ┣ func
+    ┣ ,
     ┣ 1
     ┣ 2
     ┗ 1 e
@@ -335,7 +335,7 @@ result = """
     ┣ t
     ┣ 0
       ┣ .
-      ┣ func
+      ┣ <-
       ┣ 2
       ┗ 1 e
     ┗ 3 e
@@ -727,7 +727,7 @@ result = """
     ┣ by3
     ┗ 8 e
       ┣ .
-      ┣ func
+      ┣ ;
       ┗ 3 e
 """
 
@@ -787,7 +787,7 @@ result = """
     ┣ sub1
     ┗ 0 e
       ┣ .
-      ┣ func
+      ┣ -
       ┣ 1
       ┗ . e
 """
@@ -962,7 +962,7 @@ result = """
       ┗ 7 x2 e
     ┣ 3
       ┣ 6
-      ┣ func
+      ┣ ;
       ┣ 5
       ┣ 4
       ┗ 7 x2 e
@@ -972,11 +972,12 @@ result = """
 
 [multiply]
 challenge = """
-5 5 1 -. *.
+5 5 1 -. *. *
 """
 result = """
 ┗ program:
   ┗ 0 e
+    ┣ *
     ┗ 14 e
 """
 
@@ -1021,13 +1022,23 @@ result = """
 ┗ program:
   ┗ 0 e
     ┗ program:
-      ┗ 0 e
-        ┣ 4
-        ┣ factorial
-        ┗ !
+      ┗ !
     ┣ exec:
-    ┣ !
-    ┣ .
+    ┣ ,
+    ┣ . x2
+    ┣ 2 x2
+    ┣ ;
+    ┣ . x2
+    ┣ 1 x2
+    ┣ -
+    ┣ . x2
+    ┣ 0 x2
+    ┣ 0 x2
+    ┣ ?
+    ┣ . x2
+    ┣ . x2
+    ┣ *
+    ┣ . x2
 
 ┗ program:
   ┗ 0 e
@@ -1084,17 +1095,17 @@ thread 2
 ┣ program:
   ┗ 0 e
     ┗ 2 e
+thread 4
+┣ program:
+  ┗ 0 e
+    ┗ 4 e
 thread 1
 ┣ program:
   ┗ 0 e
     ┗ 1 e
 ┗ program:
   ┗ 0 e
-    ┗ 0 x2 e
-thread 4
-┣ program:
-  ┗ 0 e
-    ┗ 4 e
+    ┗ 0 e
 """
 
 [threads2]
@@ -1150,21 +1161,14 @@ result = """
     ┣ 6
     ┣ 5
     ┗ 4 e
-┣ program:
-  ┗ 0 e
-    ┣ 8
-    ┣ 6
-    ┣ 5
-    ┗ 4 e
 ┗ program:
   ┗ 0 e
     ┣ 8
     ┣ program:
-      ┗ 0 e
-        ┣ 8
-        ┣ 6
-        ┣ 5
-        ┗ 4 e
+      ┗ ->
+    ┣ exec:
+    ┣ .
+
     ┣ 8
     ┣ program:
       ┗ 0 e
@@ -1172,6 +1176,12 @@ result = """
         ┣ 5
         ┗ 4 e
     ┗ 8 e
+┣ program:
+  ┗ 0 e
+    ┣ 8
+    ┣ 6
+    ┣ 5
+    ┗ 4 e
 """
 
 [stepper1]
@@ -1202,11 +1212,10 @@ result = """
 [threadreturn]
 challenge = """
 0 [. 1 2 3 <-.. ]. thread.
-step.
-step.
-step.
-step.
-step.
+debug.
+step. step. step. step. step.
+step. step. step. step. step.
+step. step. step. step. step.
 [. <-. ].
 """
 result = """
@@ -1286,19 +1295,19 @@ result = """
       ┣ . x2
       ┣ 0
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e
       ┣ 0
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e
       ┗ 0 e
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e
@@ -1332,19 +1341,19 @@ result = """
       ┣ . x2
       ┣ 0
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e
       ┣ 0
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e
       ┗ 0 e
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e
@@ -1358,23 +1367,9 @@ challenge = """
   0 [. \"library\" print.. ]. :\"
   0 [. .. 1 2 -.. ]. :one
   0 [. one 3 ;. .. ]. :many
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
-  1 2 3 4 5 6 7 8 9
+  0 [. .. 0 1 2 3 4 5 6 7 8 9 ]. 2 ;. .
 ]. thread.
 detach.
-:P . [. <-. ].
-:many . :many
-many .
 2 3
 """
 result = """
@@ -1382,63 +1377,11 @@ result = """
   ┗ 0 e
     ┣ 3
     ┣ 2
-    ┣ ffffffff
-    ┣ ffffffff
-    ┣ ffffffff
-    ┣ 0
-      ┣ . x3
-      ┣ 0
-        ┣ . x5
-        ┣ func
-        ┣ 2
-        ┣ 1
-        ┗ . e
-      ┣ 0
-        ┣ . x5
-        ┣ func
-        ┣ 2
-        ┣ 1
-        ┗ . e
-      ┗ 0 e
-        ┣ . x5
-        ┣ func
-        ┣ 2
-        ┣ 1
-        ┗ . e
-    ┣ library
-    ┣ 0
     ┗ program:
       ┗ library
     ┣ exec:
-    ┣ 8 x2
     ┣ 9 x2
-    ┣ 1 x2
-    ┣ 2 x2
-    ┣ 3 x2
-    ┣ 4 x2
-    ┣ 5 x2
-    ┣ 6 x2
-    ┣ 7 x2
-    ┣ 8 x2
-    ┣ 9 x2
-    ┣ 1 x2
-    ┣ 2 x2
-    ┣ 3 x2
-    ┣ 4 x2
-    ┣ 5 x2
-    ┣ 6 x2
-    ┣ 7 x2
-    ┣ 8 x2
-    ┣ 9 x2
-    ┣ 1 x2
-    ┣ 2 x2
-    ┣ 3 x2
-    ┣ 4 x2
-    ┣ 5 x2
-    ┣ 6 x2
-    ┣ 7 x2
-    ┣ 8 x2
-    ┣ 9 x2
+    ┣ 0 x2
     ┣ 1 x2
     ┣ 2 x2
     ┣ 3 x2
@@ -1480,19 +1423,19 @@ result = """
       ┣ . x2
       ┣ 0
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e0
       ┣ 0
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e0
       ┗ 0 e0
         ┣ . x4
-        ┣ func
+        ┣ -
         ┣ 2
         ┣ 1
         ┗ . e0
@@ -1504,25 +1447,33 @@ result = """
 
 [exiter]
 challenge = """
-0 [. 1 2 3 exit.. 4 5 6 ]. thread. detach.
+0 [. 1 2 3 4 5 6 exit.. 8 9 10 ]. thread. detach.
 """
 result = """
 ┗ program:
   ┗ 0 e
     ┗ program:
       ┗ 0 e
+        ┣ 6
+        ┣ 5
+        ┣ 4
         ┣ 3
         ┣ 2
         ┗ 1 e
     ┣ exec:
+    ┗ func x2 e
+    ┣ . x2
+    ┣ 0 x2
+    ┣ "
+    ┣ 2 x2
     ┣ func x2
     ┣ . x2
-    ┣ 4 x2
-    ┣ 5 x2
-    ┣ 6
 
 ┗ program:
   ┗ 0 e
+    ┣ 6
+    ┣ 5
+    ┣ 4
     ┣ 3
     ┣ 2
     ┗ 1 e

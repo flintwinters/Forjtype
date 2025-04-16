@@ -6,7 +6,6 @@ from os import system
 from os import path
 import re
 from pyautogui import hotkey
-# hotkey("enter"); hotkey("win", "space")
 
 T = {} 
 with open("challenges.toml", "r") as f:
@@ -43,6 +42,7 @@ def runforj(v, val=False):
         return "No result found"
     r = v['result'].strip()
     if r != st:
+        # copy(st)
         return "expected:\n"+v["result"]+"\nactual:\n"+s
 
 def main():
@@ -62,6 +62,7 @@ def main():
             s = runforj(v)
             if s:
                 fail(k, s)
+                # input()
                 failed = True
     if failed:
         system('make gdb')

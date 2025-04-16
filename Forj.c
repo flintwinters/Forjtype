@@ -717,6 +717,23 @@ void exitfunc(Atom* a, Atom* p, Atom* g) {
     tset(E(g), 0);
 }
 
+Atom* buildexec(char* name, Func f) {
+    Atom* a = new();
+    pushfunc(a, f);
+    push(a, createmultidot(1));
+    pushnew(a, 0);
+    pushstr(a->t, DARKGREEN);
+    pushfunc(a->t, printstr);
+    push(a->t, createmultidot(1));
+    pushstr(a->t, name);
+    pushfunc(a->t, printstr);
+    push(a->t, createmultidot(1));
+    pushstr(a, "\"");
+    pushw(a, 2);
+    pushfunc(a, destroyer);
+    push(a, createmultidot(1));
+    return a;
+}
 Func builtins(char* c) {
     if (equstr(c, ","))      {return destroyer;}
     if (equstr(c, ";"))      {return multiplier;}
@@ -763,7 +780,7 @@ void token(Atom* g, char* c) {
     if (equstr(c, "\"")) {pull(charptostr(p, c+1)); return;}
     
     Func f = builtins(c);
-    if (f) {pushfunc(p, f); return;}
+    if (f) {push(p, buildexec(c, f)); return;}
     push(p, newstrlen(c, chlen(c)+1));
     runfunc(g, scanfunc);
 }
