@@ -562,6 +562,17 @@ void tokenizer(Atom* a, Atom* p, Prog* g) {
     }
     parseone(g);
 }
+
+Atom* threader(Atom* prev, Atom* g);
+void tokench(Prog* g, Atom* p, char* c) {
+    pushstr(p->t, c);
+    pushfunc(p->t, tokenizer);
+    push(p->t, createmultidot(1));
+    Atom* e = pushnew(E(g), 0)->t;
+    pushnew(e, p->t->t);
+    while (run(g));
+}
+
 bool tequ(Atom* a, Atom* b) {
     if (a == b) {return true;}
     if (a->f != b->f) {return false;}
@@ -662,7 +673,7 @@ void printprog(Atom* a, Atom* p, Prog* g) {
         printspine(0, depth, GREEN);
         puts("exec:\n");
         e = e->t;
-        while (1) {
+        while (e) {
             print(e->t, depth, false, GREEN);
             puts("\n");
             if (e->e) {break;}
@@ -761,7 +772,7 @@ Func builtins(char* c) {
     return 0;
 }
 // Parses one token over the program g
-void token(Atom* g, char* c) {
+void token(Prog* g, char* c) {
     Atom* p = P(g)->t;
     int i = 0;
     for (; c[i] == '.'; i++);
@@ -815,7 +826,7 @@ bool splittok(Prog* g) {
     return b;
 }
 // Parses repeated tokens.
-void parseone(Atom* g) {
+void parseone(Prog* g) {
     Atom* p = P(g)->t;
     bool b = splittok(g);
     int i = 0;
@@ -923,10 +934,10 @@ void println(Atom* a) {
     putchar('\n');
 }
 
-Atom* loadprog(Atom* a, char* program) {
+Atom* loadprog(Atom* a, char* c) {
     Atom* g = pushnew(a, newprog())->t->t;
     Atom* p = P(g);
-    pushstr(p->t, program);
+    pushstr(p->t, c);
     pushfunc(p->t, tokenizer);
     push(p->t, createmultidot(1));
     Atom* e = pushnew(E(g), 0)->t;
@@ -956,6 +967,14 @@ Atom* threader(Atom* prev, Atom* g) {
     else {tset(g, prev->n);}
     return prev;
 }
+void runprog(char* c) {
+    loadprog(G, c);
+    Atom* g = ref(new());
+    tset(g, G->t);
+    Atom* prev = g->t;
+    while (G->t->e != 2) {prev = threader(prev, g);}
+    del(g);
+}
 
 int main() {
     #ifndef INTERACTIVE
@@ -970,13 +989,7 @@ int main() {
     fclose(FP);
 
     G = ref(new());
-    loadprog(G, program);
-
-    Atom* g = ref(new());
-    tset(g, G->t);
-    Atom* prev = g->t;
-    while (G->t->e != 2) {prev = threader(prev, g);}
-    del(g);
+    runprog(program);
     del(G);
 
     #else
