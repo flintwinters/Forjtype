@@ -24,8 +24,7 @@ typedef enum form form;
 //      Reversible operations need to add their
 //      residuals to this stack so they can be retrieved
 //      at undo-time.
-typedef Atom Prog;
-typedef void (*Func)(Atom*, Atom*, Prog*);
+typedef void (*Func)(Atom*, Atom*, Atom*);
 
 union data {
     Word w;
@@ -160,16 +159,33 @@ Atom* dup(Atom* a, Atom* p) {
     p->t->w = a->w;
     return p;
 }
-void dot(Prog* g);
+void dot(Atom* g);
 Atom* chscan(Atom* a, char* c, bool full);
-Atom* P(Prog* g) {return chscan(g->t, "P", true);}
-Atom* E(Prog* g) {return chscan(g->t, "E", true);}
-Atom* R(Prog* g) {return chscan(g->t, "R", true);}
+Atom* P(Atom* g) {return chscan(g->t, "P", true);}
+Atom* E(Atom* g) {return chscan(g->t, "E", true);}
+Atom* R(Atom* g) {return chscan(g->t, "R", true);}
 // push residual
 void throwr(Atom* r, Atom* p, int count) {
     pushnew(r, p->t);
     r->t->w.w = count;
     for (int i = 0; i < count; i++) {pull(p);}
+}
+Atom* open(Atom* p) {
+    Atom* pt = pushnew(p, 0)->t;
+    pt->w.a = pt->n->t;
+    if (pt->n->t) {
+        if (pt->n->t->t) {tset(pt, pt->n->t->t);}
+        else {pushend(pt, pt->n->t);}
+    }
+    return p;
+}
+Atom* close(Atom* p) {
+    if (p->t->w.a) {
+        if (p->t->t->e == 2) {tset(p->t->w.a, 0);}
+        else {tset(p->t->w.a, p->t->t);}
+    }
+    pull(p);
+    return p;
 }
 
 // Executing behavior for a list.
@@ -178,14 +194,14 @@ void throwr(Atom* r, Atom* p, int count) {
 // dup the element onto p.  If it's a multidot (ie: ...),
 // Execute it, reducing by one.
 // Double dot (..) will run dot() on the top of stack.
-void exechandler(Atom* a, Atom* p, Prog* g) {
+void exechandler(Atom* a, Atom* p, Atom* g) {
     if (a->f == exec) {
         if (!a->t) {dot(g);}
         else {dup(a->t, p);}
     }
     else {dup(a, p);}
 }
-bool run(Prog* g) {
+bool run(Atom* g) {
     Atom* e = E(g);
     if (!e->t || !e->t->t) {return false;}
     if (e->t->t->e == 2) {
@@ -205,26 +221,22 @@ void growexec(Atom* a, Atom* g) {
     pushnew(e, a);
     while (!a->e) {pushnew(e, a = a->n);}
 }
-void array(Atom* a, Prog* g) {
-    growexec(a, g);
-    // while (run(g));
-}
 // Single dot, or activated double dot:
 //      A single dot '.', runs immediately when it is
 //      parsed (at parse-time).  Whereas a double dot
 //      '..' merely pushes this function.
-void dot(Prog* g) {
+void dot(Atom* g) {
     Atom* p = P(g)->t;
     Atom* a = p->t;
     // If 'a' holds a function pointer, run it
     if (a->f == func) {return a->w.f(a, p, g);}
     a = pulln(p);
     // a->f == exec indicates 'a' is a dot ie: ..
-    if (a->f != exec && a->t) {array(a->t, g);}
+    if (a->f != exec && a->t) {growexec(a->t, g);}
     else {exechandler(a, P(g)->t, g);}
     del(a);
 }
-void dotter(Atom* a, Atom* p, Prog* g) {dot(g);}
+void dotter(Atom* a, Atom* p, Atom* g) {dot(g);}
 // Get the ith index next node after a
 Atom* get(Atom* a, int i) {
     while (a && !a->e && i--) {
@@ -243,35 +255,16 @@ int len(Atom* a) {
 //      Points p inside the top atom.
 //      Until ] is called, everything will take place
 //      inside that atom.
-void open(Atom* a, Atom* p, Prog* g) {
-    pull(P(g)->t);
-    p = pushnew(P(g), 0)->t;
-    p->w.a = p->n->t;
-    if (p->n->t) {
-        if (p->n->t->t) {tset(p, p->n->t->t);}
-        else {
-            // pushend(p->n->t, p->n->t);
-            pushend(p, p->n->t);
-        }
-    }
-    // else {pushend(p, p->t);}
-}
+void openatom(Atom* a, Atom* p, Atom* g)  {pull(p); open(P(g));}
 // Close the current atom ]
-void close(Atom* a, Atom* p, Prog* g) {
-    pull(P(g)->t);
-    if (p->w.a) {
-        if (p->t->e == 2) {tset(p->w.a, 0);}
-        else {tset(p->w.a, p->t);}
-    }
-    pull(P(g));
-}
+void closeatom(Atom* a, Atom* p, Atom* g) {pull(p); close(P(g));}
 // Func wrapping of len
-void getlen(Atom* a, Atom* p, Prog* g) {
+void getlen(Atom* a, Atom* p, Atom* g) {
     pull(p);
     pushw(p, len(p->t));
 }
 // Wrapper for `run`, to step through threads.
-void stepprog(Atom* a, Atom* p, Prog* g) {
+void stepprog(Atom* a, Atom* p, Atom* g) {
     pull(p);
     run(p->t);
 }
@@ -289,24 +282,24 @@ void swap(Atom* p) {
 // <~ inbuilt function
 // If the top element has no type, set its type to the next
 // Element, otherwise move the type that already exists to its next element
-void next(Atom* a, Atom* p, Prog* g) {
+void next(Atom* a, Atom* p, Atom* g) {
     pull(p);
     if (p->t->t) {tset(p->t, p->t->t->n);}
     else {tset(p->t, p->t->n);}
 }
 // ~> inbuilt
-void enter(Atom* a, Atom* p, Prog* g) {
+void enter(Atom* a, Atom* p, Atom* g) {
     pull(p);
     if (p->t->t) {tset(p->t, p->t->t->t);}
     else {tset(p->t, p->t->n->t);}
 }
 // Wrap pull in 'Func' type compatible function
-void consume(Atom* a, Atom* p, Prog* g) {
+void consume(Atom* a, Atom* p, Atom* g) {
     pull(p);
     if (!p->e) {dup(p->w.a->n, p);}
     else {pushw(p, pullw(g));}
 }
-void throw(Atom* a, Atom* p, Prog* g) {
+void throw(Atom* a, Atom* p, Atom* g) {
     pull(p);
     if (!p->e) {
         dup(p->t, p->n);
@@ -325,7 +318,7 @@ void throw(Atom* a, Atom* p, Prog* g) {
 // ;	        -   P
 // !            -   point to stack[1]
 // ,	        -   pull
-void token(Prog* g, char* c);
+void token(Atom* g, char* c);
 // Returns c if c is in s, else 0
 char contains(char c, char* s) {while (*s != c) {if (!*s) {return 0;} s++;} return c;}
 char iswhitespace(char c) {return contains(c, " \n\t\b\r");}
@@ -335,7 +328,7 @@ bool equstr(char* a, char* b) {
     if (*a || *b) {return false;}
     return true;
 }
-void scan(Atom* a, Atom* p, Prog* g);
+void scan(Atom* a, Atom* p, Atom* g);
 // Safetly checks if the atom holds a string
 // In the future, methods will be written in Forj to 
 // compare to templates, making this more elegant.
@@ -366,12 +359,14 @@ void runfunc(Atom* g, Func f) {
 // variable on the top, :symbol2 can be called again to get
 // a variable from the second, interior layer.
 Atom* chscan(Atom* a, char* c, bool full) {
-    Atom* v = 0;
     while (a && (full || !a->e)) {
         if (!a->e && isstr(a) &&
-            equstr(getstr(a)->t->w.v->v, c)
-            ) {
+            equstr(getstr(a)->t->w.v->v, c)) {
             return a->n;
+        }
+        if (full && !a->e && a->f == exec) {
+            Atom* v = chscan(a->n, c, false);
+            if (v) {return v;}
         }
         a = a->n;
     }
@@ -395,7 +390,7 @@ Atom* refstr(Atom* p) {
     del(a);
     return b;
 }
-void scanfunc(Atom* a, Atom* p, Prog* g) {
+void scanfunc(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Atom* v = varscan(p->t, refstr(p));
     if (v) {push(p, v);}
@@ -416,7 +411,7 @@ void scanfunc(Atom* a, Atom* p, Prog* g) {
 // `0 [. val2 :name2 ]. :name2.`
 // Enters into the top element and searches down from there.
 // Case: else
-void scan(Atom* a, Atom* p, Prog* g) {
+void scan(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Atom* s = pulln(p);
     Atom* v;
@@ -469,7 +464,7 @@ Atom* newstrlen(char* c, int len) {return setstr(newstr(), c, len);}
 Atom* pushstr(Atom* p, char* c) {return push(p, newstrlen(c, chlen(c)+1));}
 
 // Consumes the numeric string and outputs a literal
-void strtoint(Atom* a, Atom* p, Prog* g) {
+void strtoint(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Vect* v = getstr(p->t)->t->w.v;
     int n = 0;
@@ -535,7 +530,7 @@ Atom* find(Atom* a, char* c) {
 
 // Breaks a string into two separate strings, at
 // the consumed integer index.
-void splitstrat(Atom* a, Atom* p, Prog* g) {
+void splitstrat(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Word i = pullw(p);
     pushstr(p, getstr(p->t)->t->w.v->v+i);
@@ -554,8 +549,8 @@ Atom* createmultidot(int i) {
     return t;
 }
 void parseone(Atom* g);
-void debugger(Prog* g) {}
-void tokenizer(Atom* a, Atom* p, Prog* g) {
+void debugger(Atom* g) {}
+void tokenizer(Atom* a, Atom* p, Atom* g) {
     pull(p);
     if (debugging) {
         debugger(g);
@@ -564,7 +559,8 @@ void tokenizer(Atom* a, Atom* p, Prog* g) {
 }
 
 Atom* threader(Atom* prev, Atom* g);
-void tokench(Prog* g, Atom* p, char* c) {
+Atom* newprog();
+void tokenprogch(Atom* g, Atom* p, char* c) {
     pushstr(p->t, c);
     pushfunc(p->t, tokenizer);
     push(p->t, createmultidot(1));
@@ -581,63 +577,63 @@ bool tequ(Atom* a, Atom* b) {
     if (!a->e && !tequ(a->n, b->n)) {return false;}
     return true;
 }
-void choice(Atom* a, Atom* p, Prog* g) {
+void choice(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Word b = p->t->n->n->w.w;
     if (b) {swap(p);}
     pull(p);
 }
-void typeequ(Atom* a, Atom* p, Prog* g) {
+void typeequ(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Atom* b = pulln(p);
     a = pulln(p);
     pushw(p, tequ(a->t, b->t));
     del(a); del(b);
 }
-// void zip(Atom* a, Prog* g) {
+// void zip(Atom* a, Atom* g) {
 //     Atom* p = P(g)->t;
 //     pull(p);
 //     Atom* x = pulln(p);
 //     Atom* y = pulln(p);
     
 // }
-void destroyer(Atom* a, Atom* p, Prog* g) {
+void destroyer(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Word n = pullw(p);
     while (n-- > 0) {pull(p);}
 }
-void multiplier(Atom* a, Atom* p, Prog* g) {
+void multiplier(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Word n = pullw(p);
     a = pulln(p);
     while (n-- > 0) {dup(a, p);}
     del(a);
 }
-void mult(Atom* a, Atom* p, Prog* g) {
+void mult(Atom* a, Atom* p, Atom* g) {
     pull(p);
     // Word x = p->t->w.w * p->t->n->w.w;
     // throwr(R(g), p, 2);
     // pushw(p, x);
     p->t->w.w *= pullw(p);
 }
-void sub(Atom* a, Atom* p, Prog* g) {
+void sub(Atom* a, Atom* p, Atom* g) {
     pull(p);
     // Word x = p->t->n->w.w - p->t->w.w;
     // throwr(R(g), p, 2);
     // pushw(p, x);
     p->t->w.w -= pullw(p);
 }
-void toggledebug(Atom* a, Atom* p, Prog* g) {
+void toggledebug(Atom* a, Atom* p, Atom* g) {
     pull(p);
     debugging = !debugging;
 }
 void println(Atom* a);
-void dbprint(Atom* a, Atom* p, Prog* g) {
+void dbprint(Atom* a, Atom* p, Atom* g) {
     pull(p);
     println(p->t);
 }
 
-void printstr(Atom* a, Atom* p, Prog* g) {
+void printstr(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Atom* s = pulln(p);
     puts(getstr(s)->t->w.v->v);
@@ -646,7 +642,7 @@ void printstr(Atom* a, Atom* p, Prog* g) {
 }
 void print(Atom* a, int depth, bool shown, char* spinecolor);
 void printspine(bool e, int depth, char* spinecolor);
-void printprog(Atom* a, Atom* p, Prog* g) {
+void printprog(Atom* a, Atom* p, Atom* g) {
     pull(p);
     int depth = pullw(p);
     if (p->t->w.w) {printint(p->t->w.w, 8); puts(" ");}
@@ -681,8 +677,8 @@ void printprog(Atom* a, Atom* p, Prog* g) {
         }
     }
 }
-Prog* newprog() {
-    Prog* g = new();
+Atom* newprog() {
+    Atom* g = new();
     pushnew(g, 0);
     pushnew(g->t, 0);
     pushstr(g, "P");
@@ -695,7 +691,7 @@ Prog* newprog() {
     g->e = true;
     return g;
 }
-void addthread(Atom* a, Atom* p, Prog* g) {
+void addthread(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Atom* g2 = newprog();
     growexec(p->t->t, g2);
@@ -703,11 +699,11 @@ void addthread(Atom* a, Atom* p, Prog* g) {
     pull(p);
     push(p, g2);
 }
-void detachthread(Atom* a, Atom* p, Prog* g) {
+void detachthread(Atom* a, Atom* p, Atom* g) {
     pull(p);
     pushnew(G, p->t);
 }
-void strconcat(Atom* a, Atom* p, Prog* g) {
+void strconcat(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Atom* s = refstr(p);
     Atom* t = getstr(p->t);
@@ -715,7 +711,7 @@ void strconcat(Atom* a, Atom* p, Prog* g) {
     t->t->w.v = rawpushv(t->t->w.v, s->t->w.v->v, s->t->w.v->len+1);
     del(s);
 }
-void strpadto(Atom* a, Atom* p, Prog* g) {
+void strpadto(Atom* a, Atom* p, Atom* g) {
     pull(p);
     Word n = pullw(p);
     Atom* s = getstr(p->t);
@@ -728,7 +724,7 @@ void exitfunc(Atom* a, Atom* p, Atom* g) {
     tset(E(g), 0);
 }
 
-Atom* buildexec(char* name, Func f) {
+Atom* buildfunc(char* name, Func f) {
     Atom* a = new();
     pushfunc(a, f);
     push(a, createmultidot(1));
@@ -748,8 +744,8 @@ Atom* buildexec(char* name, Func f) {
 Func builtins(char* c) {
     if (equstr(c, ","))      {return destroyer;}
     if (equstr(c, ";"))      {return multiplier;}
-    if (equstr(c, "["))      {return open;}
-    if (equstr(c, "]"))      {return close;}
+    if (equstr(c, "["))      {return openatom;}
+    if (equstr(c, "]"))      {return closeatom;}
     if (equstr(c, "?"))      {return choice;}
     if (equstr(c, "#"))      {return typeequ;}
     if (equstr(c, "-"))      {return sub;}
@@ -761,7 +757,7 @@ Func builtins(char* c) {
     if (equstr(c, "exit"))   {return exitfunc;}
     if (equstr(c, "pad"))    {return strpadto;}
     if (equstr(c, "concat")) {return strconcat;}
-    if (equstr(c, "token"))  {return tokenizer;}
+    if (equstr(c, "tokens")) {return tokenizer;}
     if (equstr(c, "length")) {return getlen;}
     if (equstr(c, "print"))  {return printstr;}
     if (equstr(c, "step"))   {return stepprog;}
@@ -772,7 +768,7 @@ Func builtins(char* c) {
     return 0;
 }
 // Parses one token over the program g
-void token(Prog* g, char* c) {
+void token(Atom* g, char* c) {
     Atom* p = P(g)->t;
     int i = 0;
     for (; c[i] == '.'; i++);
@@ -791,11 +787,14 @@ void token(Prog* g, char* c) {
     if (equstr(c, "\"")) {pull(charptostr(p, c+1)); return;}
     
     Func f = builtins(c);
-    if (f) {push(p, buildexec(c, f)); return;}
+    if (f) {
+        push(p, buildfunc(c, f));
+        return;
+    }
     push(p, newstrlen(c, chlen(c)+1));
     runfunc(g, scanfunc);
 }
-void addtok(int i, Prog* g) {
+void addtok(int i, Atom* g) {
     Atom* p = P(g)->t;
     pushw(p, i);
     runfunc(g, splitstrat);
@@ -806,13 +805,13 @@ void addtok(int i, Prog* g) {
     push(P(g)->t, s->n);
     del(s);
 }
-void discardtok(int i, Prog* g) {
+void discardtok(int i, Atom* g) {
     Atom* p = P(g)->t;
     pushw(p, i);
     runfunc(g, splitstrat);
     pull(p);
 }
-bool splittok(Prog* g) {
+bool splittok(Atom* g) {
     Atom* p = P(g)->t;
     Vect* str = getstr(p->t)->t->w.v;
     int i = 0;
@@ -826,7 +825,7 @@ bool splittok(Prog* g) {
     return b;
 }
 // Parses repeated tokens.
-void parseone(Prog* g) {
+void parseone(Atom* g) {
     Atom* p = P(g)->t;
     bool b = splittok(g);
     int i = 0;

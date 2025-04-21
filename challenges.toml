@@ -101,7 +101,7 @@ result = """
 """
 
 [pull3]
-challenge = """1 "5 ;. " token. """
+challenge = """1 "5 ;. " tokens. """
 result = """
 ┗ program:
   ┗ 0 e
@@ -113,7 +113,7 @@ result = """
 """
 
 [begintoken]
-challenge = """ "1" token. """
+challenge = """ "1" tokens. """
 result = """
 ┗ program:
   ┗ 0 e
@@ -686,7 +686,7 @@ result = """
 """
 
 [exec]
-challenge = """0 1 2 3 0 [. "12" token. 1 ]. 7"""
+challenge = """0 1 2 3 0 [. "12" tokens. 1 ]. 7"""
 result = """
 ┗ program:
   ┗ 0 e
