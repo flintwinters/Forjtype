@@ -254,6 +254,22 @@ result = """
     ┗ 1 e
 """
 
+[innername]
+challenge = """3 [. 6 [. 1 2 3 1 :namey ]. .. namey ]."""
+result = """
+┗ program:
+  ┗ 0 e
+    ┗ 3 e
+      ┣ 1
+      ┣ .
+      ┗ 6 e
+        ┣ namey
+        ┣ 1
+        ┣ 3
+        ┣ 2
+        ┗ 1 e
+"""
+
 [funcarray1]
 challenge = """1 3 [. 6  ]. ."""
 result = """

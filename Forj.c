@@ -365,7 +365,7 @@ Atom* chscan(Atom* a, char* c, bool full) {
             return a->n;
         }
         if (full && !a->e && a->f == exec) {
-            Atom* v = chscan(a->n, c, false);
+            Atom* v = chscan(a->n->t, c, false);
             if (v) {return v;}
         }
         a = a->n;
@@ -724,22 +724,25 @@ void exitfunc(Atom* a, Atom* p, Atom* g) {
     tset(E(g), 0);
 }
 
-Atom* buildfunc(char* name, Func f) {
-    Atom* a = new();
-    pushfunc(a, f);
-    push(a, createmultidot(1));
-    pushnew(a, 0);
-    pushstr(a->t, DARKGREEN);
-    pushfunc(a->t, printstr);
-    push(a->t, createmultidot(1));
-    pushstr(a->t, name);
-    pushfunc(a->t, printstr);
-    push(a->t, createmultidot(1));
-    pushstr(a, "\"");
-    pushw(a, 2);
-    pushfunc(a, destroyer);
-    push(a, createmultidot(1));
-    return a;
+void buildfunc(Atom* a, Atom* p, Atom* g) {
+    pull(p);
+    Atom* name = refstr(p);
+    Func f = (Func) pullw(p);
+    Atom* s = pushnew(p, 0)->t;
+    pushfunc(s, f);
+    push(s, createmultidot(1));
+    pushnew(s, 0);
+    pushstr(s->t, DARKGREEN);
+    pushfunc(s->t, printstr);
+    push(s->t, createmultidot(1));
+    pushstr(s->t, name->t->w.v->v);
+    del(name);
+    pushfunc(s->t, printstr);
+    push(s->t, createmultidot(1));
+    pushstr(s, "\"");
+    pushw(s, 2);
+    pushfunc(s, destroyer);
+    push(s, createmultidot(1));
 }
 Func builtins(char* c) {
     if (equstr(c, ","))      {return destroyer;}
@@ -787,12 +790,14 @@ void token(Atom* g, char* c) {
     if (equstr(c, "\"")) {pull(charptostr(p, c+1)); return;}
     
     Func f = builtins(c);
-    if (f) {
-        push(p, buildfunc(c, f));
+    if (!f) {
+        push(p, newstrlen(c, chlen(c)+1));
+        runfunc(g, scanfunc);
         return;
     }
-    push(p, newstrlen(c, chlen(c)+1));
-    runfunc(g, scanfunc);
+    pushfunc(p, f);
+    pushstr(p, c);
+    runfunc(g, buildfunc);
 }
 void addtok(int i, Atom* g) {
     Atom* p = P(g)->t;
