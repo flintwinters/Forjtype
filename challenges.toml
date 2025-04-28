@@ -997,6 +997,18 @@ result = """
     ┗ 14 e
 """
 
+[undomultiply]
+challenge = """
+5 5 4 *. *. undo. undo.
+"""
+result = """
+┗ program:
+  ┗ 0 e
+    ┣ 4
+    ┣ 5
+    ┗ 5 e
+"""
+
 [factorialrecursive]
 challenge = """
 1 :num
@@ -1038,23 +1050,13 @@ result = """
 ┗ program:
   ┗ 0 e
     ┗ program:
-      ┗ !
+      ┗ 0 e
+        ┣ 4
+        ┣ factorial
+        ┗ !
     ┣ exec:
-    ┣ ,
-    ┣ . x2
-    ┣ 2 x2
-    ┣ ;
-    ┣ . x2
-    ┣ 1 x2
-    ┣ -
-    ┣ . x2
-    ┣ 0 x2
-    ┣ 0 x2
-    ┣ ?
-    ┣ . x2
-    ┣ . x2
-    ┣ *
-    ┣ . x2
+    ┣ !
+    ┣ .
 
 ┗ program:
   ┗ 0 e
@@ -1129,7 +1131,7 @@ challenge = """
 0
 0 [. 4 5 6 "thread 7\n" print.. 10 3 -. <-.. ]. thread.
 detach. :t
-1 2 3
+1 2 3 4 5 6 7 8 9
 t [. <-. ].
 """
 result = """
@@ -1147,6 +1149,12 @@ thread 7
         ┣ 6
         ┣ 5
         ┗ 4 e
+    ┣ 9
+    ┣ 8
+    ┣ 7
+    ┣ 6
+    ┣ 5
+    ┣ 4
     ┣ 3
     ┣ 2
     ┣ 1
@@ -1181,9 +1189,27 @@ result = """
   ┗ 0 e
     ┣ 8
     ┣ program:
-      ┗ ->
+      ┗ 0 e
+        ┣ 0
+          ┣ . x2
+          ┣ func
+          ┣ ->
+          ┣ .
+          ┣ func
+          ┣ 
+          ┣ .
+          ┣ func
+          ┗  e
+        ┣ 6
+        ┣ 5
+        ┗ 4 e
     ┣ exec:
-    ┣ .
+    ┣ "
+    ┣ 2 x2
+    ┣ func x2
+    ┣ . x2
+    ┣ func x2
+    ┣ . x2
 
     ┣ 8
     ┣ program:
@@ -1228,10 +1254,10 @@ result = """
 [threadreturn]
 challenge = """
 0 [. 1 2 3 <-.. ]. thread.
-debug.
 step. step. step. step. step.
 step. step. step. step. step.
 step. step. step. step. step.
+step.
 [. <-. ].
 """
 result = """
@@ -1396,6 +1422,11 @@ result = """
     ┗ program:
       ┗ library
     ┣ exec:
+    ┣ 4 x2
+    ┣ 5 x2
+    ┣ 6 x2
+    ┣ 7 x2
+    ┣ 8 x2
     ┣ 9 x2
     ┣ 0 x2
     ┣ 1 x2
@@ -1470,20 +1501,18 @@ result = """
   ┗ 0 e
     ┗ program:
       ┗ 0 e
-        ┣ 6
-        ┣ 5
-        ┣ 4
         ┣ 3
         ┣ 2
         ┗ 1 e
     ┣ exec:
-    ┗ func x2 e
+    ┣ 4 x2
+    ┣ 5 x2
+    ┣ 6 x2
+    ┣ exit
     ┣ . x2
-    ┣ 0 x2
-    ┣ "
-    ┣ 2 x2
-    ┣ func x2
-    ┣ . x2
+    ┣ 8 x2
+    ┣ 9 x2
+    ┣ a
 
 ┗ program:
   ┗ 0 e
