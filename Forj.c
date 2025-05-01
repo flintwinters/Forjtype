@@ -45,6 +45,7 @@ struct Atom {
 
 Atom* G;
 bool debugging = false;
+bool reversible = false;
 
 // Creates a new, zero-initialized atom with no references.
 Atom* new() {
@@ -189,29 +190,16 @@ Atom* close(Atom* p) {
     pull(p);
     return p;
 }
-// push residual
 void openr(Atom* r) {pushnew(r, 0);}
-void throwr(Atom* r, Atom* p, int consume, int produce) {
+// push residual
+Atom* throwr(Atom* r, Atom* p, int consume) {
     Atom* n = get(p->t, consume-1);
     Atom* a = ref(p->t);
+    pushnew(r->t, a);
+    pushnew(r->t, p);
     if (n->e) {pushend(p, n->n);}
-    else {
-        tset(p, n->n);
-        nset(n, r->t->t);
-    }
-    tset(r->t, a);
-    r->t->w.w += consume + 0x1000*produce;
-    del(a);
-    // pushnew(r, a);
-    // r->t->w.w = count;
-    // for (int i = 0; i < count; i++) {pull(p);}
-}
-void undo(Atom* r, Atom* p) {
-    pushw(p, r->t->w.w/0x1000);
-    pullx(p);
-    push(p, get(r->t->t, r->t->w.w%0x1000-1));
-    tset(p, r->t->t);
-    pull(r);
+    else {tset(p, n->n);}
+    return a;
 }
 
 // Executing behavior for a list.
@@ -234,13 +222,13 @@ bool run(Atom* g) {
         pull(e);
         return false;
     }
-    Atom* e2 = pulln(e->t);
-    if (e->t->t->e == 2) {
-        pull(e);
-    }
+    Atom* e2 = (reversible) ?
+        throwr(R(g), e->t, 1) :
+        pulln(e->t);
+    if (e->t->t->e == 2) {pull(e);}
     exechandler(e2->t, P(g)->t, g);
     del(e2);
-    return E(g)->t && E(g)->t->e != 2;
+    return e->t && e->t->e != 2;
 }
 void growexec(Atom* a, Atom* g) {
     Atom* e = pushnew(E(g), 0)->t;
@@ -280,7 +268,7 @@ int len(Atom* a) {
 //      Points p inside the top atom.
 //      Until ] is called, everything will take place
 //      inside that atom.
-void openatom(Atom* a, Atom* p, Atom* g)  {pull(p); open(P(g));}
+void openatom(Atom* a, Atom* p, Atom* g)  {pull(p); open(P(g)); openr(R(g));}
 // Close the current atom ]
 void closeatom(Atom* a, Atom* p, Atom* g) {pull(p); close(P(g));}
 // Func wrapping of len
@@ -617,41 +605,21 @@ void multiplier(Atom* a, Atom* p, Atom* g) {
 }
 // Arithmetical Multiplication
 void mult(Atom* a, Atom* p, Atom* g) {
-    // Atom* me  = chscan(p->t, "*", true);
-    // Word cons = chscan(me->t, "consume", true)->w.w;
-    // Word prod = chscan(me->t, "produce", true)->w.w;
-    pull(p);
-    Word x = p->t->w.w * p->t->n->w.w;
     Atom* r = R(g);
-    openr(r);
-    throwr(r, p, 2, 1);
-    // Word cons = chscan(p->t, "consume", false)->w.w;
-    // Word prod = chscan(p->t, "produce", false)->w.w;
-    // runfunc(g, destroyer);
+    Word x = p->t->n->n->w.w * p->t->n->w.w;
+    del(throwr(r, p, 3));
     pushw(p, x);
-    // p->t->w.w *= pullw(p);
 }
 // Arithmetical Subtraction
 void sub(Atom* a, Atom* p, Atom* g) {
-    pull(p);
-    Word x = p->t->n->w.w - p->t->w.w;
+    Word x = p->t->n->n->w.w - p->t->n->w.w;
     Atom* r = R(g);
-    openr(r);
-    throwr(r, p, 2, 1);
-    // Word cons = chscan(p->t, "consume", false)->w.w;
-    // Word prod = chscan(p->t, "produce", false)->w.w;
-    // runfunc(g, destroyer);
+    del(throwr(r, p, 3));
     pushw(p, x);
-    // runfunc(g, destroyer);
-    // Word x = p->t->n->w.w - p->t->w.w;
-    // throwr(R(g), p, 2);
-    // pushw(p, x);
-    // p->t->w.w -= pullw(p);
 }
 // Turn debug printing on or off
-void toggledebug(Atom* a, Atom* p, Atom* g) {
+void debug(Atom* a, Atom* p, Atom* g) {
     pull(p);
-    debugging = !debugging;
 }
 // Node printing utility
 void println(Atom* a);
@@ -685,10 +653,11 @@ void printprog(Atom* a, Atom* p, Atom* g) {
     Atom* r = R(p->t)->t;
     // if (r && len(r)) {
     //     puts("\n");
-    //     printspine(0, depth, BLUE);
+    //     printspine(0, depth+1, BLUE);
     //     puts("residual:\n");
-    //     print(r, depth+1, true, BLUE);
+    //     r = r->t;
     //     while (1) {
+    //         print(r->t, depth+1, false, BLUE);
     //         puts("\n");
     //         if (r->e) {break;}
     //         r = r->n;
@@ -697,11 +666,11 @@ void printprog(Atom* a, Atom* p, Atom* g) {
     Atom* e = E(p->t)->t;
     if (e && len(e)) {
         puts("\n");
-        printspine(0, depth, GREEN);
+        printspine(0, depth+1, GREEN);
         puts("exec:\n");
         e = e->t;
         while (e) {
-            print(e->t, depth, false, GREEN);
+            print(e->t, depth+1, false, GREEN);
             puts("\n");
             if (e->e) {break;}
             e = e->n;
@@ -709,7 +678,7 @@ void printprog(Atom* a, Atom* p, Atom* g) {
     }
 }
 // Wrap a function pointer in a nice Forj object
-void buildfunc(Atom* p, Func f, char* name, int consume, int produce) {
+void buildfunc(Atom* p, Func f, char* name) {
     Atom* s = pushnew(p, 0)->t;
     pushnew(s, 0);
     pushstr(s->t, RESET);
@@ -722,10 +691,6 @@ void buildfunc(Atom* p, Func f, char* name, int consume, int produce) {
     pushfunc(s->t, printstr);
     push(s->t, createmultidot(1));
     pushstr(s, "\"");
-    // pushw(s, consume);
-    // pushstr(s, "consume");
-    // pushw(s, produce);
-    // pushstr(s, "produce");
     pushw(s, len(s->t));
     pushfunc(s, destroyer);
     push(s, createmultidot(1));
@@ -738,11 +703,10 @@ Func builtins(Atom* p);
 Atom* newprog() {
     Atom* g = new();
     builtins(g);
-    pushnew(g, 0);
-    pushnew(g->t, 0);
-    pushstr(g, "P");
+    pushnew(g, 0); pushnew(g->t, 0); pushstr(g, "P");
     pushnew(g, 0); pushstr(g, "E");
-    pushnew(g, 0); pushstr(g, "R");
+    pushnew(g, 0); pushnew(g->t, 0); pushstr(g, "R");
+    pushnew(g, 0); pushstr(g, "dependents");
     pushnew(g, 0);
     pushfunc(g->t, printprog);
     push(g->t, createmultidot(1));
@@ -750,6 +714,7 @@ Atom* newprog() {
     g->e = true;
     return g;
 }
+
 // Turns a list into a thread.
 // Does not start execution.
 void addthread(Atom* a, Atom* p, Atom* g) {
@@ -767,10 +732,29 @@ void detachthread(Atom* a, Atom* p, Atom* g) {
     pull(p);
     pushnew(G, p->t);
 }
+
+void await(Atom* a, Atom* p, Atom* g) {
+    pull(p);
+    if (p->t->w.w) {return;}
+    p = chscan(p->t->t, "dependents", true);
+    pushnew(p, g);
+    g->w.w = 1;
+}
+
 // Step the thread at the top of the stack backwards.
+void undoone(Atom* r) {
+    tset(r->t->t->t, r->t->t->n->t);
+    pull(r->t);
+    pull(r->t);
+}
+void undo(Atom* g) {
+    Atom* r = R(g);
+    while (r->t->t->e != 2) {undoone(r);}
+    pull(r);
+}
 void undofunc(Atom* a, Atom* p, Atom* g) {
     pull(p);
-    undo(R(g), p);
+    undo(p->t);
 }
 // Concatenate strings
 void strconcat(Atom* a, Atom* p, Atom* g) {
@@ -798,30 +782,31 @@ void exitfunc(Atom* a, Atom* p, Atom* g) {
 
 Func builtins(Atom* p) {
     // Atom* p, Func f, char* name, int consume, int produce
-    buildfunc(p, destroyer,      ",",       1, -1);
-    buildfunc(p, multiplier,     ";",       1, -1);
-    buildfunc(p, openatom,       "[",       1, -1);
-    buildfunc(p, closeatom,      "]",       0, -1);
-    buildfunc(p, choice,         "?",       3,  1);
-    buildfunc(p, typeequfunq,    "#",       2,  1);
-    buildfunc(p, sub,            "-",       2,  1);
-    buildfunc(p, mult,           "*",       2,  1);
-    buildfunc(p, enter,          "~>",      0,  0);
-    buildfunc(p, next,           "<~",      0,  0);
-    buildfunc(p, consume,        "->",      0,  1);
-    buildfunc(p, throw,          "<-",      1,  0);
-    buildfunc(p, exitfunc,       "exit",    0,  0);
-    buildfunc(p, strpadto,       "pad",     2,  1);
-    buildfunc(p, strconcat,      "concat",  2,  1);
-    buildfunc(p, parseonefunc,   "tokens",  1, -1);
-    buildfunc(p, getlen,         "length",  0,  1);
-    buildfunc(p, printstr,       "print",   1,  0);
-    buildfunc(p, stepprog,       "step",    1, -1);
-    buildfunc(p, printlnfunc,    "printlnfunc", 1,  0);
-    buildfunc(p, toggledebug,    "debug",   0,  0);
-    buildfunc(p, addthread,      "thread",  1,  1);
-    buildfunc(p, detachthread,   "detach",  1,  0);
-    buildfunc(p, undofunc,       "undo",    1, -1);
+    buildfunc(p, destroyer,      ",");
+    buildfunc(p, multiplier,     ";");
+    buildfunc(p, openatom,       "[");
+    buildfunc(p, closeatom,      "]");
+    buildfunc(p, choice,         "?");
+    buildfunc(p, typeequfunq,    "#");
+    buildfunc(p, sub,            "-");
+    buildfunc(p, mult,           "*");
+    buildfunc(p, enter,          "~>");
+    buildfunc(p, next,           "<~");
+    buildfunc(p, consume,        "->");
+    buildfunc(p, throw,          "<-");
+    buildfunc(p, exitfunc,       "exit");
+    buildfunc(p, strpadto,       "pad");
+    buildfunc(p, strconcat,      "concat");
+    buildfunc(p, parseonefunc,   "tokens");
+    buildfunc(p, getlen,         "length");
+    buildfunc(p, printstr,       "print");
+    buildfunc(p, stepprog,       "step");
+    buildfunc(p, printlnfunc,    "printnode");
+    buildfunc(p, debug,          "debug");
+    buildfunc(p, addthread,      "thread");
+    buildfunc(p, detachthread,   "detach");
+    buildfunc(p, undofunc,       "undo");
+    buildfunc(p, await,          "await");
     return 0;
 }
 
@@ -1002,15 +987,22 @@ void removeat(Atom* p, Atom* a) {
     }
     a->e = e;
 }
+bool threadrun(Atom* g) {
+    return run(g);
+}
 Atom* threader(Atom* prev, Atom* g) {
-    if (g->t->t->w.w == 0 && !run(g->t->t)) {
-        print(g->t->t, 0, true, DARKYELLOW); puts("\n");
-        if (g->t == G->t) {pull(G);}
+    if (g->t->w.w == 0 && !threadrun(g->t)) {
+        g->t->w.w = 1;
+        Atom* w = chscan(g->t->t, "dependents", true);
+        while (w && w->t && w->t->e != 2) {
+            w->t->t->w.w = 0;
+            pull(w);
+        }
+        print(g->t, 0, true, DARKYELLOW); puts("\n");
+        if (g == G->t) {pull(G);}
         else {removeat(G, prev);}
     }
-    else {prev = g->t;}
-    if (prev->e) {tset(g, G->t);}
-    else {tset(g, prev->n);}
+    else {prev = g;}
     return prev;
 }
 int main() {
@@ -1032,7 +1024,9 @@ int main() {
     tset(g, G->t);
     Atom* prev = g->t;
     while (G->t->e != 2) {
-        prev = threader(prev, g);
+        prev = threader(prev, g->t);
+        if (prev->e) {tset(g, G->t);}
+        else {tset(g, prev->n);}
     }
 
     #else
@@ -1044,21 +1038,25 @@ int main() {
     for (int i = 0; i < 0x100; i++) {buff[i] = 0;}
 
     Atom* p = P(interactive);
-    while (G->t->e != 2 && buff[0] != '\n') {
-        pushstr(p->t, buff);
-        pushfunc(p->t, parseonefunc);
-        push(p->t, createmultidot(1));
-        Atom* e = pushnew(E(interactive), 0)->t;
-        pushnew(e, p->t->t);
-        while (run(interactive));
+    while (G->t->e != 2) {
+        if (buff[0] != '\n') {
+            pushstr(p->t, buff);
+            pushfunc(p->t, parseonefunc);
+            push(p->t, createmultidot(1));
+            Atom* e = pushnew(E(interactive), 0)->t;
+            pushnew(e, p->t->t);
+        }
+        run(interactive);
         if (p->t->e == 2) {break;}
-        println(p->t->t);
+        println(g->t);
         puts(DARKBLUE); puts("🡪🡪 ");
         puts(BLUE);
         fgets(buff, 0x100, stdin);
         puts(RESET);
 
-        prev = threader(prev, g);
+        prev = threader(prev, g->t);
+        if (prev->e) {tset(g, G->t);}
+        else {tset(g, prev->n);}
     }
     #endif
     del(g);

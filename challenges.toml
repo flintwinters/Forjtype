@@ -1,14 +1,14 @@
 [nothing]
 challenge = ""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗  e"""
 
 [one]
 challenge = "1"
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 1 e
 """
@@ -16,7 +16,7 @@ result = """
 [execzero]
 challenge = "0 ."
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 0 e
 """
@@ -24,7 +24,7 @@ result = """
 [execfive]
 challenge = "5 ."
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 5 e
 """
@@ -36,7 +36,7 @@ challenge = """2 2 3  4 5
 8
 8 0 10 9999"""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 270f
     ┣ a
@@ -55,7 +55,7 @@ result = """
 [declarevar]
 challenge = """1 2 3 :hello 4 5"""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 5
     ┣ 4
@@ -68,7 +68,7 @@ result = """
 [pull1]
 challenge = """1 2 1 ,"""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ ,
     ┣ 1
@@ -79,7 +79,7 @@ result = """
 [pull2]
 challenge = """1 2 1 ,."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 1 e
 """
@@ -87,7 +87,7 @@ result = """
 [pulltwo]
 challenge = """1 2 2 ,."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗  e
 """
@@ -95,7 +95,7 @@ result = """
 [pull4]
 challenge = """1 1 ,."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗  e
 """
@@ -103,7 +103,7 @@ result = """
 [pull3]
 challenge = """1 "5 ;. " tokens. """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 1
     ┣ 1
@@ -115,7 +115,7 @@ result = """
 [begintoken]
 challenge = """ "1" tokens. """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 1 e
 """
@@ -123,7 +123,7 @@ result = """
 [doubledot1]
 challenge = """1 2 1 ,.."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ .
     ┣ ,
@@ -135,7 +135,7 @@ result = """
 [doubledot2]
 challenge = """1 2 1 ,.. ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 1 e
 """
@@ -143,7 +143,7 @@ result = """
 [tripledot1]
 challenge = """1 2 1 ,..."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ .
       ┗ . e
@@ -156,7 +156,7 @@ result = """
 [tripledot2]
 challenge = """1 2 1 ,... .. ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ .
     ┣ ,
@@ -168,7 +168,7 @@ result = """
 [tripledot3]
 challenge = """1 2 1 ,... .. . ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 1 e
 """
@@ -176,7 +176,7 @@ result = """
 [multidot]
 challenge = """1 ... ...."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ .
       ┗ . e
@@ -192,7 +192,7 @@ challenge = """
 
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┣ 3 x2
@@ -204,7 +204,7 @@ result = """
 [emptyarray]
 challenge = """1 3 [. ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┗ 1 e
@@ -213,7 +213,7 @@ result = """
 [array1]
 challenge = """1 3 [. 4 ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
       ┗ 4 e
@@ -223,7 +223,7 @@ result = """
 [doublearray]
 challenge = """1 3 [. 6 [. 4 ]. ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
       ┗ 6 e
@@ -234,7 +234,7 @@ result = """
 [innerfunc1]
 challenge = """1 3 [. 1 2 3 1 ,. ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
       ┣ 2
@@ -245,7 +245,7 @@ result = """
 [innerfunc2]
 challenge = """1 3 [. 6 [. 1 2 3 1 ,. ]. ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
       ┗ 6 e
@@ -257,7 +257,7 @@ result = """
 [innername]
 challenge = """3 [. 6 [. 1 2 3 1 :namey ]. .. namey ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 3 e
       ┣ 1
@@ -273,7 +273,7 @@ result = """
 [funcarray1]
 challenge = """1 3 [. 6  ]. ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 6
     ┗ 1 e
@@ -282,7 +282,7 @@ result = """
 [funcarray2]
 challenge = """1 3 [. 1 2 3 4 5 6 7 8 9 ]. ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 9
     ┣ 8
@@ -299,7 +299,7 @@ result = """
 [clone]
 challenge = """1 3 0 <~. ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┣ 1
@@ -310,7 +310,7 @@ result = """
 [clonearr]
 challenge = """1 2 3 4 5 0 <~. ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 5
     ┣ 4
@@ -327,7 +327,7 @@ result = """
 [throw]
 challenge = """1 3 [. 1 2 <-. ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 2
     ┣ 3
@@ -341,7 +341,7 @@ challenge = """
 4 5 6 [. t. ].
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 2
     ┣ 6
@@ -360,7 +360,7 @@ result = """
 [consume1]
 challenge = """1 2 3 [. ->. 1 2 ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
       ┣ 2
@@ -373,7 +373,7 @@ result = """
 [consume2]
 challenge = """1 2 3 [. 4 ->. [. ->. ]. 5 6 ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
       ┣ 6
@@ -388,7 +388,7 @@ result = """
 [descend1]
 challenge = """1 3 0 <~. [. 4 ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┣ 4
@@ -401,7 +401,7 @@ result = """
 [descend2]
 challenge = """1 3 0 <~. [. [. 2 ]. ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┣ 3 x2
@@ -418,7 +418,7 @@ challenge = """
 1 4 0 <~. [. [. 2 ]. ].
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┣ 4 x2
@@ -444,7 +444,7 @@ result = """
 [string1]
 challenge = ' :hello '
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ hello e
 """
@@ -457,7 +457,7 @@ hello
 \"
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ hi
 hello
@@ -468,7 +468,7 @@ hello
 [simplestring]
 challenge = ' 1 [. 3 ]. "hi" [. 7 ]. 5'
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 5
     ┣ 0
@@ -484,7 +484,7 @@ result = """
 [string2]
 challenge = ' 1 [. 1 2 3 ]. "hi" [. 5 6 7 ]. 15'
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ f
     ┣ 0
@@ -505,7 +505,7 @@ result = """
 challenge = """ 4 [. 5 6 ]. "essay about
 \\"stuff\\" and \\"things\\"" [. 1 ]. 2 3"""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┣ 2
@@ -524,7 +524,7 @@ result = """
 [string3]
 challenge = ' "hi" :hi '
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ hi
     ┗ hi e
@@ -533,7 +533,7 @@ result = """
 [string4]
 challenge = ' "hi" '
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ hi e
 """
@@ -541,7 +541,7 @@ result = """
 [string7]
 challenge = ' "hi how are you" '
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ hi how are you e
 """
@@ -549,7 +549,7 @@ result = """
 [string5]
 challenge = ' "\"" '
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ " e
 """
@@ -557,7 +557,7 @@ result = """
 [string6]
 challenge = ':"'
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ " e
 """
@@ -565,7 +565,7 @@ result = """
 [variable1]
 challenge = ' 2 :hi 3 hi'
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 2
     ┣ 3
@@ -576,7 +576,7 @@ result = """
 [variable2]
 challenge = ' 2 :hi 3 [. hi ].'
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
       ┗ 2 e
@@ -587,7 +587,7 @@ result = """
 [printer]
 challenge = ' 1 2 8 [. 1 2 3 0 [. "HI" print .. ]. :" 6 7 8 ]. 4 3'
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┣ 4
@@ -600,7 +600,7 @@ result = """
 challenge = ' "print this stuff out\n" print. '
 result = """
 print this stuff out
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗  e
 """
@@ -608,7 +608,7 @@ print this stuff out
 [descend4]
 challenge = """1 3 0 <~. [. [. 2 <-. ]. <-. ]. """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 2
     ┣ 0
@@ -621,7 +621,7 @@ result = """
 [interior1]
 challenge = """1 2 3 [. 4 [. 5 :c ]. :b ]. :b :c."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 5
     ┣ 3
@@ -636,7 +636,7 @@ result = """
 [interior2]
 challenge = """1 2 3 [. 4 [. 5 [. 6 :d ]. :c ]. :b ]. :b :c :d."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 6
     ┣ 3
@@ -653,7 +653,7 @@ result = """
 [scanner]
 challenge = """0 2 :hello :hello : ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 2
     ┣ hello
@@ -664,7 +664,7 @@ result = """
 [length]
 challenge = """2 2 2 2 length . 0 [. 1 2 3 ]. [. length . <-. ]."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┣ 0
@@ -681,7 +681,7 @@ result = """
 [removal]
 challenge = """0 2 3 [. 1 1 ,. ]. 5 :hello 4 [. 1 2 1 ,. hello ]. """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 4
       ┣ 5
@@ -696,7 +696,7 @@ result = """
 [twelve]
 challenge = "12"
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ c e
 """
@@ -704,7 +704,7 @@ result = """
 [exec]
 challenge = """0 1 2 3 0 [. "12" tokens. 1 ]. 7"""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 7
     ┣ 0
@@ -719,7 +719,7 @@ result = """
 [multiplier]
 challenge = """8 9 ; ."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 8
     ┣ 8
@@ -735,7 +735,7 @@ result = """
 [enclose1]
 challenge = """8 [. 3 ;.. ]. :by3 4 by3."""
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 4
     ┣ 4
@@ -754,7 +754,7 @@ challenge = """
 6 sub1.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 5
     ┣ 3
@@ -781,7 +781,7 @@ challenge = """
 """
 result = """
 hello
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 1
     ┣ 5
@@ -797,8 +797,8 @@ challenge = """
 5 sub1 sub1 sub1.
 """
 result = """
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x4 e
     ┣ 2
     ┣ sub1
     ┗ 0 e
@@ -820,7 +820,7 @@ result = """
 # 0 cloner2.
 # """
 # result = """
-# ┗ program:
+# ┗ 1 program:
   # ┗ 0 e0
 #   ┣ 9
 #   ┣ 4
@@ -856,7 +856,7 @@ result = """
 # 0 cloner2.
 # """
 # result = """
-# ┗ program:
+# ┗ 1 program:
   # ┗ 0 e0
 #   ┣ 9
 #   ┣ .
@@ -891,7 +891,7 @@ challenge = """
 0 [. 1 [. 8 ]. 2 3 ]. 4 [. 5 6 [. 9 ]. 7 ]. #.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
     ┣ 1
@@ -907,7 +907,7 @@ challenge = """
 0 <~. ~>. <~. ~>.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┣ c x2
@@ -946,7 +946,7 @@ challenge = """
 1 8 0 [. 2 3 4 ]. ?.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┣ 4
@@ -967,7 +967,7 @@ challenge = """
 0 <~. ~>. <~. [. . ].
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┣ 4
@@ -991,19 +991,23 @@ challenge = """
 5 5 1 -. *. *
 """
 result = """
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x3 e
     ┣ *
     ┗ 14 e
 """
 
 [undomultiply]
 challenge = """
-5 5 4 *. *. undo. undo.
+0 [.
+  5 5 4 *..
+]. thread. detach.
+await debug. .
+undo. "undid\n" print.
 """
 result = """
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x3 e
     ┣ 4
     ┣ 5
     ┗ 5 e
@@ -1023,8 +1027,8 @@ challenge = """
 4 factorial.
 """
 result = """
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x9 e
     ┣ 18
     ┣ factorial
     ┣ !
@@ -1047,19 +1051,19 @@ challenge = """
 thread. detach.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ program:
       ┗ 0 e
         ┣ 4
         ┣ factorial
         ┗ !
-    ┣ exec:
-    ┣ !
-    ┣ .
+      ┣ exec:
+      ┣ !
+      ┣ .
 
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x9 e
     ┣ 18
     ┣ factorial
     ┗ !
@@ -1073,7 +1077,7 @@ challenge = """
 ].
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 0
       ┗ hello hi        e
@@ -1087,7 +1091,7 @@ challenge = """
 concat.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 123hello hi e
 """
@@ -1106,22 +1110,22 @@ detach. 1 ,.
 """
 result = """
 thread 3
-┣ program:
+┣ 1 program:
   ┗ 0 e
     ┗ 3 e
 thread 2
-┣ program:
+┣ 1 program:
   ┗ 0 e
     ┗ 2 e
 thread 4
-┣ program:
+┣ 1 program:
   ┗ 0 e
     ┗ 4 e
 thread 1
-┣ program:
+┣ 1 program:
   ┗ 0 e
     ┗ 1 e
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 0 e
 """
@@ -1136,15 +1140,15 @@ t [. <-. ].
 """
 result = """
 thread 7
-┣ program:
+┣ 1 program:
   ┗ 0 e
     ┣ 6
     ┣ 5
     ┗ 4 e
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x2 e
     ┣ 7
-    ┣ program:
+    ┣ 1 program:
       ┗ 0 e
         ┣ 6
         ┣ 5
@@ -1159,12 +1163,39 @@ thread 7
     ┣ 2
     ┣ 1
     ┣ t
-    ┣ program:
+    ┣ 1 program:
       ┗ 0 e
         ┣ 6
         ┣ 5
         ┗ 4 e
     ┗ 0 e
+"""
+
+[threadattributes]
+challenge = """
+0 [. 1 2 3 ]. thread.
+detach.
+4 5 6 3 ,.
+:P.
+"""
+result = """
+┗ 1 program:
+  ┗ 0 e
+    ┣ 3
+    ┣ 2
+    ┗ 1 e
+┗ 1 program:
+  ┗ 0 e
+    ┣ 0
+      ┗ 0 x2 e
+        ┣ 3
+        ┣ 2
+        ┗ 1 e
+    ┗ 1 program:
+      ┗ 0 x2 e
+        ┣ 3
+        ┣ 2
+        ┗ 1 e
 """
 
 [threadconsume]
@@ -1180,12 +1211,12 @@ detach.
 8
 """
 result = """
-┣ program:
+┣ 1 program:
   ┗ 0 e
     ┣ 6
     ┣ 5
     ┗ 4 e
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 8
     ┣ program:
@@ -1203,22 +1234,22 @@ result = """
         ┣ 6
         ┣ 5
         ┗ 4 e
-    ┣ exec:
-    ┣ "
-    ┣ 2 x2
-    ┣ func x2
-    ┣ . x2
-    ┣ func x2
-    ┣ . x2
+      ┣ exec:
+      ┣ "
+      ┣ 2 x2
+      ┣ func x2
+      ┣ . x2
+      ┣ func x2
+      ┣ . x2
 
     ┣ 8
-    ┣ program:
+    ┣ 1 program:
       ┗ 0 e
         ┣ 6
         ┣ 5
         ┗ 4 e
     ┗ 8 e
-┣ program:
+┣ 1 program:
   ┗ 0 e
     ┣ 8
     ┣ 6
@@ -1235,7 +1266,7 @@ step.
 step.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ program:
       ┗ 0 e
@@ -1243,12 +1274,12 @@ result = """
         ┣ 3
         ┣ 2
         ┗ 1 e
-    ┣ exec:
-    ┣ 5 x2
-    ┣ 6 x2
-    ┣ 7 x2
-    ┣ 8 x2
-    ┣ 9
+      ┣ exec:
+      ┣ 5 x2
+      ┣ 6 x2
+      ┣ 7 x2
+      ┣ 8 x2
+      ┣ 9
 """
 
 [threadreturn]
@@ -1261,7 +1292,7 @@ step.
 [. <-. ].
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┗ program:
@@ -1284,9 +1315,9 @@ result = """
 # 1 -.
 # """
 # result = """
-# ┗ program:
+# ┗ 1 program:
   # ┗ 0 e
-#   ┗ program:
+#   ┗ 1 program:
   # ┗ 0 e
 #     ┣ 4
 #     ┣ 3
@@ -1306,7 +1337,7 @@ hi!
 hi!
 hi!
 hi!
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ 0 e
 """
@@ -1322,15 +1353,15 @@ challenge = """
 2 3 many many.
 """
 result = """
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x7 e
     ┣ ffffffff
-    ┣ ffffffff
-    ┣ ffffffff
-    ┣ ffffffff
-    ┣ ffffffff
-    ┣ ffffffff
-    ┣ 3
+    ┣ ffffffff x2
+    ┣ ffffffff x2
+    ┣ ffffffff x2
+    ┣ ffffffff x2
+    ┣ ffffffff x2
+    ┣ 3 x2
     ┣ 2
     ┣ many
     ┣ 0
@@ -1371,7 +1402,7 @@ challenge = """
 2 3 
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┣ 2
@@ -1415,31 +1446,31 @@ detach.
 2 3
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┣ 2
     ┗ program:
       ┗ library
-    ┣ exec:
-    ┣ 4 x2
-    ┣ 5 x2
-    ┣ 6 x2
-    ┣ 7 x2
-    ┣ 8 x2
-    ┣ 9 x2
-    ┣ 0 x2
-    ┣ 1 x2
-    ┣ 2 x2
-    ┣ 3 x2
-    ┣ 4 x2
-    ┣ 5 x2
-    ┣ 6 x2
-    ┣ 7 x2
-    ┣ 8 x2
-    ┣ 9
+      ┣ exec:
+      ┣ 4 x2
+      ┣ 5 x2
+      ┣ 6 x2
+      ┣ 7 x2
+      ┣ 8 x2
+      ┣ 9 x2
+      ┣ 0 x2
+      ┣ 1 x2
+      ┣ 2 x2
+      ┣ 3 x2
+      ┣ 4 x2
+      ┣ 5 x2
+      ┣ 6 x2
+      ┣ 7 x2
+      ┣ 8 x2
+      ┣ 9
 
-┗ program:
+┗ 1 program:
   ┗ library
 """
 
@@ -1457,16 +1488,16 @@ many .
 2 3 
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ library
-┗ program:
-  ┗ 0 e
+┗ 1 program:
+  ┗ 0 x4 e
     ┣ 3
     ┣ 2
     ┣ ffffffff
-    ┣ ffffffff
-    ┣ ffffffff
-    ┣ 0
+    ┣ ffffffff x2
+    ┣ ffffffff x2
+    ┣ 0 x2
       ┣ . x2
       ┣ 0
         ┣ . x4
@@ -1488,7 +1519,7 @@ result = """
         ┗ . e0
     ┣ library
     ┣ 0
-    ┗ program:
+    ┗ 1 program:
       ┗ library
 """
 
@@ -1497,24 +1528,24 @@ challenge = """
 0 [. 1 2 3 4 5 6 exit.. 8 9 10 ]. thread. detach.
 """
 result = """
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┗ program:
       ┗ 0 e
         ┣ 3
         ┣ 2
         ┗ 1 e
-    ┣ exec:
-    ┣ 4 x2
-    ┣ 5 x2
-    ┣ 6 x2
-    ┣ exit
-    ┣ . x2
-    ┣ 8 x2
-    ┣ 9 x2
-    ┣ a
+      ┣ exec:
+      ┣ 4 x2
+      ┣ 5 x2
+      ┣ 6 x2
+      ┣ exit
+      ┣ . x2
+      ┣ 8 x2
+      ┣ 9 x2
+      ┣ a
 
-┗ program:
+┗ 1 program:
   ┗ 0 e
     ┣ 6
     ┣ 5
