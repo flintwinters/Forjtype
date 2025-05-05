@@ -192,13 +192,13 @@ Atom* close(Atom* p) {
 }
 void openr(Atom* r) {pushnew(r, 0);}
 // push residual
-Atom* throwr(Atom* r, Atom* p, int consume) {
-    Atom* n = get(p->t, consume-1);
-    Atom* a = ref(p->t);
-    pushnew(r->t, a);
-    pushnew(r->t, p);
-    if (n->e) {pushend(p, n->n);}
-    else {tset(p, n->n);}
+Atom* throwr(Atom* r, Atom* dest, Atom* src, int consume) {
+    Atom* n = get(src->t, consume-1);
+    Atom* a = ref(src->t);
+    pushnew(r->t, a)->t->w.w = consume;
+    pushnew(r->t, dest);
+    if (n->e) {pushend(src, n->n);}
+    else {tset(src, n->n);}
     return a;
 }
 
@@ -222,9 +222,7 @@ bool run(Atom* g) {
         pull(e);
         return false;
     }
-    Atom* e2 = (reversible) ?
-        throwr(R(g), e->t, 1) :
-        pulln(e->t);
+    Atom* e2 = pulln(e->t);
     if (e->t->t->e == 2) {pull(e);}
     exechandler(e2->t, P(g)->t, g);
     del(e2);
@@ -268,7 +266,7 @@ int len(Atom* a) {
 //      Points p inside the top atom.
 //      Until ] is called, everything will take place
 //      inside that atom.
-void openatom(Atom* a, Atom* p, Atom* g)  {pull(p); open(P(g)); openr(R(g));}
+void openatom(Atom* a, Atom* p, Atom* g)  {pull(p); open(P(g));}
 // Close the current atom ]
 void closeatom(Atom* a, Atom* p, Atom* g) {pull(p); close(P(g));}
 // Func wrapping of len
@@ -605,20 +603,28 @@ void multiplier(Atom* a, Atom* p, Atom* g) {
 }
 // Arithmetical Multiplication
 void mult(Atom* a, Atom* p, Atom* g) {
-    Atom* r = R(g);
+    // Atom* r = R(g);
     Word x = p->t->n->n->w.w * p->t->n->w.w;
-    del(throwr(r, p, 3));
+    pull(p);
+    pull(p);
+    pull(p);
+    // push(p, createmultidot(1));
+    // del(throwr(r, E(g), p, 2));
+    // del(throwr(r, P(g), p, 2));
     pushw(p, x);
 }
 // Arithmetical Subtraction
 void sub(Atom* a, Atom* p, Atom* g) {
+    // Atom* r = R(g);
     Word x = p->t->n->n->w.w - p->t->n->w.w;
-    Atom* r = R(g);
-    del(throwr(r, p, 3));
+    pull(p);
+    pull(p);
+    pull(p);
+    // del(throwr(r, E(g)->t, p, 1));
+    // del(throwr(r, p, p, 3));
     pushw(p, x);
 }
-// Turn debug printing on or off
-void debug(Atom* a, Atom* p, Atom* g) {
+void breakpoint(Atom* a, Atom* p, Atom* g) {
     pull(p);
 }
 // Node printing utility
@@ -656,7 +662,7 @@ void printprog(Atom* a, Atom* p, Atom* g) {
     //     printspine(0, depth+1, BLUE);
     //     puts("residual:\n");
     //     r = r->t;
-    //     while (1) {
+    //     while (r) {
     //         print(r->t, depth+1, false, BLUE);
     //         puts("\n");
     //         if (r->e) {break;}
@@ -742,14 +748,26 @@ void await(Atom* a, Atom* p, Atom* g) {
 }
 
 // Step the thread at the top of the stack backwards.
-void undoone(Atom* r) {
-    tset(r->t->t->t, r->t->t->n->t);
-    pull(r->t);
-    pull(r->t);
+void undoone(Atom* r, Atom* g) {
+    if (r->t->w.w == 1) {
+        Word consume = r->t->n->w.w;
+        Atom* a = get(r->t->n->t, consume-1);
+        while (consume--) {
+            del(pushnew(r->t->t, pulln(r->t->n))->t);
+        }
+        // push(r->t->t, a);
+        // nset(a, 0);
+        // a->n = r->t->t->t->n;
+    }
+    else tset(r->t->t->t, r->t->n->t);
+    pull(r);
+    pull(r);
 }
 void undo(Atom* g) {
     Atom* r = R(g);
-    while (r->t->t->e != 2) {undoone(r);}
+    while (r->t->t->e != 2) {
+        undoone(r->t, g);
+    }
     pull(r);
 }
 void undofunc(Atom* a, Atom* p, Atom* g) {
@@ -802,7 +820,7 @@ Func builtins(Atom* p) {
     buildfunc(p, printstr,       "print");
     buildfunc(p, stepprog,       "step");
     buildfunc(p, printlnfunc,    "printnode");
-    buildfunc(p, debug,          "debug");
+    buildfunc(p, breakpoint,     "breakpoint");
     buildfunc(p, addthread,      "thread");
     buildfunc(p, detachthread,   "detach");
     buildfunc(p, undofunc,       "undo");
@@ -907,8 +925,8 @@ void printspine(bool e, int depth, char* spinecolor) {
 }
 
 void print(Atom* a, int depth, bool shown, char* spinecolor) {
-    printspine(a->e, depth, spinecolor);
     if (!a) {puts("None\n"); return;}
+    printspine(a->e, depth, spinecolor);
     Atom* s = (debugging) ? 0 : chscan(a->t, "\"", false);
     bool showt = false || a->t;
     if (s) {
