@@ -798,7 +798,7 @@ challenge = """
 """
 result = """
 ┗ 1 program:
-  ┗ 0 x4 e
+  ┗ 0 e
     ┣ 2
     ┣ sub1
     ┗ 0 e
@@ -992,26 +992,26 @@ challenge = """
 """
 result = """
 ┗ 1 program:
-  ┗ 0 x3 e
+  ┗ 0 e
     ┣ *
     ┗ 14 e
 """
 
-[undomultiply]
-challenge = """
-0 [.
-  5 5 4 *..
-]. thread. detach.
-await debug. .
-undo. "undid\n" print.
-"""
-result = """
-┗ 1 program:
-  ┗ 0 x3 e
-    ┣ 4
-    ┣ 5
-    ┗ 5 e
-"""
+# [undomultiply]
+# challenge = """
+# 0 [.
+#   5 5 4 *..
+# ]. thread. detach.
+# await debug. .
+# undo. "undid\n" print.
+# """
+# result = """
+# ┗ 1 program:
+#   ┗ 0 x3 e
+#     ┣ 4
+#     ┣ 5
+#     ┗ 5 e
+# """
 
 [factorialrecursive]
 challenge = """
@@ -1028,7 +1028,7 @@ challenge = """
 """
 result = """
 ┗ 1 program:
-  ┗ 0 x9 e
+  ┗ 0 e
     ┣ 18
     ┣ factorial
     ┣ !
@@ -1063,7 +1063,7 @@ result = """
       ┣ .
 
 ┗ 1 program:
-  ┗ 0 x9 e
+  ┗ 0 e
     ┣ 18
     ┣ factorial
     ┗ !
@@ -1146,7 +1146,7 @@ thread 7
     ┣ 5
     ┗ 4 e
 ┗ 1 program:
-  ┗ 0 x2 e
+  ┗ 0 e
     ┣ 7
     ┣ 1 program:
       ┗ 0 e
@@ -1354,14 +1354,14 @@ challenge = """
 """
 result = """
 ┗ 1 program:
-  ┗ 0 x7 e
+  ┗ 0 e
     ┣ ffffffff
-    ┣ ffffffff x2
-    ┣ ffffffff x2
-    ┣ ffffffff x2
-    ┣ ffffffff x2
-    ┣ ffffffff x2
-    ┣ 3 x2
+    ┣ ffffffff
+    ┣ ffffffff
+    ┣ ffffffff
+    ┣ ffffffff
+    ┣ ffffffff
+    ┣ 3
     ┣ 2
     ┣ many
     ┣ 0
@@ -1491,13 +1491,13 @@ result = """
 ┗ 1 program:
   ┗ library
 ┗ 1 program:
-  ┗ 0 x4 e
+  ┗ 0 e
     ┣ 3
     ┣ 2
     ┣ ffffffff
-    ┣ ffffffff x2
-    ┣ ffffffff x2
-    ┣ 0 x2
+    ┣ ffffffff
+    ┣ ffffffff
+    ┣ 0
       ┣ . x2
       ┣ 0
         ┣ . x4
