@@ -15,9 +15,9 @@ typedef struct Vect Vect;
 struct Vect {short len, maxlen; byte v[];};
 
 // Pre-allocate a dynamic array of `maxlen` bytes
-struct Vect* valloclen(int maxlen) {
-    int n = sizeof(struct Vect)+maxlen;
-    struct Vect* newv = malloc(n);
+Vect* valloclen(int maxlen) {
+    int n = sizeof(Vect)+maxlen;
+    Vect* newv = malloc(n);
     newv->maxlen = maxlen;
     newv->len = 0;
     return newv;
@@ -34,15 +34,24 @@ void cpymemrev(byte* dest, byte* src, Word len) {
         dest[i] = src[len-i-1];
     }
 }
-void freevect(struct Vect* v) {
-    reclaim(v, sizeof(struct Vect)+v->maxlen);
+void freevect(Vect* v) {
+    if (!v) {return;}
+    reclaim(v, sizeof(Vect)+v->maxlen);
 }
+
+Vect* dupvect(Vect* v) {
+    Vect* u = valloclen(v->maxlen);
+    u->len = v->len;
+    cpymem(u->v, v->v, v->maxlen);
+    return u;
+}
+
 // Resize a dynamic array's allocation
-struct Vect* resize(struct Vect* v, int newmaxlen) {
+Vect* resize(Vect* v, int newmaxlen) {
     if (!newmaxlen) {
         newmaxlen = (v->maxlen) ? 2*v->maxlen: 1;
     }
-    struct Vect* newv = valloclen(newmaxlen);
+    Vect* newv = valloclen(newmaxlen);
     newv->len = v->len;
     cpymem(newv->v, v->v, v->maxlen);
     freevect(v);

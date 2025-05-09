@@ -165,6 +165,50 @@ result = """
     ┗ 1 e
 """
 
+[quadrupledot2]
+challenge = """1 2 1 ,.... .. ."""
+result = """
+┗ 1 program:
+  ┗ 0 e
+    ┣ .
+      ┗ . e
+    ┣ ,
+    ┣ 1
+    ┣ 2
+    ┗ 1 e
+"""
+
+[multidot2]
+challenge = """
+1
+. .
+.. .
+... .
+.... .
+..... .
+.....
+...... .
+"""
+result = """
+┗ 1 program:
+  ┗ 0 e
+    ┣ .
+      ┗ . e
+        ┗ . e
+          ┗ . e
+    ┣ .
+      ┗ . e
+        ┗ . e
+          ┗ . e
+    ┣ .
+      ┗ . e
+        ┗ . e
+    ┣ .
+      ┗ . e
+    ┣ .
+    ┗ 1 e
+"""
+
 [tripledot3]
 challenge = """1 2 1 ,... .. . ."""
 result = """
@@ -466,36 +510,28 @@ hello
 """
 
 [simplestring]
-challenge = ' 1 [. 3 ]. "hi" [. 7 ]. 5'
+challenge = ' 1 [. 3 ]. [. "hi" ]. [. 7 ]. 5'
 result = """
 ┗ 1 program:
   ┗ 0 e
     ┣ 5
-    ┣ 0
-      ┣ 7
-      ┣ .
-      ┣ func
-      ┗ 0 e
-        ┗ hi e
     ┗ 1 e
+      ┣ 7
+      ┣ hi
       ┗ 3 e
 """
 
 [string2]
-challenge = ' 1 [. 1 2 3 ]. "hi" [. 5 6 7 ]. 15'
+challenge = ' 1 [. 1 2 3 ]. [. "hi" ]. [. 5 6 7 ]. 15'
 result = """
 ┗ 1 program:
   ┗ 0 e
     ┣ f
-    ┣ 0
+    ┗ 1 e
       ┣ 7
       ┣ 6
       ┣ 5
-      ┣ .
-      ┣ func
-      ┗ 0 e
-        ┗ hi e
-    ┗ 1 e
+      ┣ hi
       ┣ 3
       ┣ 2
       ┗ 1 e
@@ -503,19 +539,14 @@ result = """
 
 [string8]
 challenge = """ 4 [. 5 6 ]. "essay about
-\\"stuff\\" and \\"things\\"" [. 1 ]. 2 3"""
+\\"stuff\\" and \\"things\\"" 2 3"""
 result = """
 ┗ 1 program:
   ┗ 0 e
     ┣ 3
     ┣ 2
-    ┣ 0
-      ┣ 1
-      ┣ .
-      ┣ func
-      ┗ 0 e
-        ┗ essay about
-"stuff" and "things" e
+    ┣ essay about
+"stuff" and "things"
     ┗ 4 e
       ┣ 6
       ┗ 5 e
@@ -1391,7 +1422,7 @@ result = """
 challenge = """
 0 [.
   0 [. 
-    0 [. \"library\" print.. ]. :\"
+    0 [. \"library\" print.. ]. :\" breakpoint.
     0 [. .. 1 2 -.. ]. :one
     0 [. one 3 ;. .. ]. :many
   ].
