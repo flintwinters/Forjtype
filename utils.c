@@ -12,19 +12,19 @@ char* colorcodes[] = {"\033[1;30m",
                       "\033[0;36m",
                       "\033[0m"};
 
-#define BLACK       colorcodes[0]
-#define RED         colorcodes[1]
-#define DARKRED     colorcodes[2]
-#define GREEN       colorcodes[3]
-#define DARKGREEN   colorcodes[4]
-#define YELLOW      colorcodes[5]
-#define DARKYELLOW  colorcodes[6]
-#define BLUE        colorcodes[7]
-#define DARKBLUE    colorcodes[8]
-#define PURPLE      colorcodes[9]
-#define CYAN        colorcodes[10]
-#define DARKCYAN    colorcodes[11]
-#define RESET       colorcodes[12]
+#define BLACK       "\033[1;30m"
+#define RED         "\033[1;31m"
+#define DARKRED     "\033[0;31m"
+#define GREEN       "\033[1;32m"
+#define DARKGREEN   "\033[0;32m"
+#define YELLOW      "\033[1;33m"
+#define DARKYELLOW  "\033[2;33m"
+#define BLUE        "\033[1;34m"
+#define DARKBLUE    "\033[2;34m"
+#define PURPLE      "\033[1;35m"
+#define CYAN        "\033[1;36m"
+#define DARKCYAN    "\033[0;36m"
+#define RESET       "\033[0m"
 
 typedef long long Word;
 typedef char byte;

@@ -34,6 +34,13 @@ void cpymemrev(byte* dest, byte* src, Word len) {
         dest[i] = src[len-i-1];
     }
 }
+void reversevect(Vect* v) {
+    for (int i = 0; i < v->len / 2; ++i) {
+        char c = v->v[i];
+        v->v[i] = v->v[v->len - i - 1];
+        v->v[v->len - i - 1] = c;
+    }
+}
 void freevect(Vect* v) {
     if (!v) {return;}
     reclaim(v, sizeof(Vect)+v->maxlen);
