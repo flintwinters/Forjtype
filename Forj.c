@@ -448,7 +448,7 @@ Atom* atomstr(Atom* a, int indent, char* spinecolor, bool next) {
                 newlines = true;
             }
         }
-        else if (cur->f == dots) {s2 = str(DOTSCOLOR "•");}
+        else if (cur->f == dots) {s2 = str(DOTSCOLOR ".");}
         else if (cur->f == vects) {
             s2 = str(VECTCOLOR);
             addstrch(s2, cur->d.v->v);
@@ -524,6 +524,7 @@ bool discardn(Atom* s, int n) {
 }
 // shrinks s1 to length i and returns s2 as the part that was removed
 Atom* splitat(Atom* s1, int i) {
+    if (i == -1) {i = s1->d.v->len;}
     Atom* s2 = substr(s1, 0, i);
     discardn(s1, i);
     return s2;
@@ -961,10 +962,10 @@ Error throwfunc(Atom* D, Atom* d, Atom* e, Atom* r) {
 }
 
 Error printfunc(Atom* D, Atom* d, Atom* e, Atom* r) {
-    Atom* a = asA(d);
-    Atom* s = atomstr(a, 0, (a == Threads) ? RED : YELLOW, true);
+    Atom* s = asA(d);
+    vectfail(s);
+    printstr(s);
     pull(d);
-    push(d, s);
     return passA(d);
 }
 
@@ -1289,10 +1290,10 @@ Error tokench(Atom* d, char* c) {
 
 #define addfvar(c, f) addvar(lib, c, func(f))
 int main(int argc, char** argv) {
-    char* fname = "test.fj";
+    char* fname = "challenge";
     if (argc > 1) {fname = argv[1];}
     FILE* FP = fopen(fname, "r");
-    fseeko(FP, 0, SEEK_END);
+    fseek(FP, 0, SEEK_END);
     int i = ftell(FP);
     char program[i+1];
     char* program_ = program;
@@ -1312,7 +1313,6 @@ int main(int argc, char** argv) {
     addfvar("store",        storetextfunc);
     addfvar("appendfile",   appendtextfunc);
     addfvar("load",         loadtextfunc);
-    addfvar("zip",          zipfunc);
     addfvar("reverse",      reversefunc);
     addfvar("map",          mapfunc);
     addfvar("length",       getlen);
