@@ -22,6 +22,10 @@ result = "None"
 challenge = "5 ."
 result = "5"
 
+[namefive]
+challenge = ":five 5 five"
+result = "five 5 5"
+
 [several]
 challenge = """2 2 3  4 5
 6
@@ -450,6 +454,85 @@ hello
 sub1
 """
 
+[mathfunc]
+challenge = """
+:p @ [. 2 3 + .. ].
+:d @ [. @ ].
+:r @ [. @ ].
+:e @ p growexec.
+r d e run. 5 ,.
+"""
+result = """
+@
+╰@
+ ├@
+  ╰@ 2 3
+ ╰@
+  ╰@ 5
+r
+@
+╰@ 5
+d
+@ 2 3 + .
+p
+"""
+
+[mathundofunc]
+challenge = """
+:p @ [. 2 3 + .. ].
+:d @ [. @ ].
+:r @ [. @ ].
+:e @ p growexec.
+r d e run. 5 ,.
+
+r undo. 1 ,.
+"""
+result = """
+@ @
+r
+@
+╰@
+ ╰@ 2 3
+d
+@ 2 3 + .
+p
+"""
+
+[shapecompare1]
+challenge = """
+1 2 #.
+@ @ #.
+@ [. 1 ]. @ [. 2 ]. #.
+@ [. @ ]. @ [. 2 ]. #.
+@ [. @ [. 1 @ 3 ]. ]. @ [. @ [. 2 @ 4 ]. ]. #.
+@ [. @ [. 1 @ 3 ]. ]. @ [. @ [. 2 4 @ ]. ]. #.
+@ [. @ [. 1 @ 3 ]. ]. @ [. @ [. 2 4 2 ]. ]. #.
+"""
+result = """
+0
+@
+╰@ 2 4 2
+@
+╰@ 1 @ 3
+0
+@
+╰@ 2 4 @
+@
+╰@ 1 @ 3
+1
+@
+╰@ 2 @ 4
+@
+╰@ 1 @ 3
+0
+@ 2
+@ @
+1
+@ 2
+@ 1
+1 2 1 @ @ 1
+"""
+
 [tailrecursive]
 challenge = """
 :sub1 @ [. .. 1 -.. ]. 
@@ -487,6 +570,75 @@ result = """
 fact
 """
 
+[runfunc1]
+challenge = """
+:d @ [. @ ].
+:p @ [. @ [. 1 2 3 +.. ]. .. ].
+:e @ p growexec.
+0 d e run. 3 ,.
+0 d e run. 7 ,.
+"""
+result = """
+@
+╰@ 1 5 1 5
+d
+"""
+
+[runfunc2]
+challenge = """
+:d @ [. @ ].
+:p @ [. @ [. 1 2 3 +.. ]. .. ].
+:e @ p growexec.
+0 d e run. 3 ,.
+0 d e run. 3 ,.
+0 d e run. 5 ,.
+p <~. [. [. +.. ]. ]. 1 ,.
+:e @ p growexec.
+0 d e run. 7 ,.
+"""
+result = """
+@
+╰@ 1 5 1 5 1 5 6
+d
+"""
+
+[detachrunfunc1]
+challenge = """
+:d @ [. @ ].
+:p @ [. @ [. 1 2 "hello" print.. 3 +.. ]. .. ].
+:e @ p growexec.
+0 d e run.
+"hi" print.
+@ [. .. 1 2 3 4 5 6 7 8 9 0 ]. 10 ;. .
+100 ,.
+6 ,.
+"""
+result = """
+hellohi
+@
+╰@ 1 5
+d
+"""
+
+
+[detachfunc1]
+challenge = """
+:d @ [. @ ].
+:p @ [. @ [. 1 2 "hello" print.. 3 +.. ]. .. ].
+:e @ p growexec.
+0 d e detach.
+"hi" print.
+@ [. .. 1 2 3 4 5 6 7 8 9 0 ]. 10 ;. .
+100 ,.
+6 ,.
+"""
+result = """
+hihello
+@
+╰@ 1 5
+d
+"""
+
 [factorialrun]
 challenge = """
 :fact @ [. @ ].
@@ -504,12 +656,10 @@ fact [. [.
 
 :d @ [. @ ].
 :e @ [. @ @ [. 5 fact.. .. ]. growexec. ].
-d e. run. 1 ,.
+0 d e. run. 3 ,.
 
 """
 result = """
-@
-╰@ 78
 @
 ╰@
  ├@ 5
@@ -534,6 +684,30 @@ d
 @
 ╰!
 fact
+"""
+
+[reverseadd]
+challenge = """
+:p @ [. 1 2 +.. ].
+:d @ [. @ ].
+:e @ p growexec.
+@ d e run. 1 ,.
+"""
+result = """
+@
+╰@ 3
+@ 2 1
+@
+├@ 1
+├@ 1 2
+├@ 1 2 +
+╰@ 1 2 + .
+e
+@
+╰@ 3
+d
+@ 1 2 + .
+p
 """
 
 
